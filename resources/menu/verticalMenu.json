@@ -1,0 +1,387 @@
+{
+  "menu": [
+    {
+      "url": "/dashboard",
+      "name": "Executive Dashboard",
+      "icon": "menu-icon icon-base ri ri-home-smile-line",
+      "slug": "dashboard-analytics",
+      "submenu": [
+        {
+          "url": "dashboard/systems/system-17",
+          "name": "CES",
+          "slug": "qams-system-system-17",
+          "systemKey": "system-17"
+        },
+        {
+          "url": "dashboard/systems/human-resources",
+          "name": "HRMIS",
+          "slug": "qams-system-human-resources",
+          "systemKey": "human-resources"
+        },
+        {
+          "url": "dashboard/systems/student-information",
+          "name": "SIS",
+          "slug": "qams-system-student-information",
+          "systemKey": "student-information"
+        },
+        {
+          "url": "dashboard/systems/learning-management",
+          "name": "LMS",
+          "slug": "qams-system-learning-management",
+          "systemKey": "learning-management"
+        },
+        {
+          "url": "dashboard/systems/system-07",
+          "name": "ODS",
+          "slug": "qams-system-07",
+          "systemKey": "system-07"
+        },
+        {
+          "url": "dashboard/systems/library-services",
+          "name": "OCMS",
+          "slug": "qams-system-library-services",
+          "systemKey": "library-services"
+        },
+        {
+          "url": "dashboard/systems/system-08",
+          "name": "PMIS",
+          "slug": "qams-system-08",
+          "systemKey": "system-08"
+        },
+        {
+          "url": "dashboard/systems/system-09",
+          "name": "PoLMIS",
+          "slug": "qams-system-09",
+          "systemKey": "system-09"
+        },
+        {
+          "url": "dashboard/systems/system-10",
+          "name": "CMIS",
+          "slug": "qams-system-10",
+          "systemKey": "system-10"
+        },
+        {
+          "url": "dashboard/systems/system-11",
+          "name": "OPAS",
+          "slug": "qams-system-11",
+          "systemKey": "system-11"
+        },
+        {
+          "url": "dashboard/systems/research-management",
+          "name": "RIESMIS",
+          "slug": "qams-system-research-management",
+          "systemKey": "research-management"
+        },
+        {
+          "url": "dashboard/systems/system-12",
+          "name": "AFES",
+          "slug": "qams-system-12",
+          "systemKey": "system-12"
+        },
+        {
+          "url": "dashboard/systems/system-13",
+          "name": "GAD DB",
+          "slug": "qams-system-13",
+          "systemKey": "system-13"
+        },
+        {
+          "url": "dashboard/systems/finance",
+          "name": "SWIPE",
+          "slug": "qams-system-finance",
+          "systemKey": "finance"
+        },
+        {
+          "url": "dashboard/systems/system-14",
+          "name": "PASS",
+          "slug": "qams-system-14",
+          "systemKey": "system-14"
+        },
+        {
+          "url": "dashboard/systems/system-15",
+          "name": "DMIS",
+          "slug": "qams-system-15",
+          "systemKey": "system-15"
+        }
+      ]
+    },
+    {
+      "name": "Layouts",
+      "icon": "menu-icon icon-base ri ri-layout-2-line",
+      "slug": "layouts",
+      "submenu": [
+        {
+          "url": "layouts/without-menu",
+          "name": "Without menu",
+          "slug": "layouts-without-menu"
+        },
+        {
+          "url": "layouts/without-navbar",
+          "name": "Without navbar",
+          "slug": "layouts-without-navbar"
+        },
+        {
+          "url": "layouts/container",
+          "name": "Container",
+          "slug": "layouts-container"
+        },
+        {
+          "url": "layouts/fluid",
+          "name": "Fluid",
+          "slug": "layouts-fluid"
+        },
+        {
+          "url": "layouts/blank",
+          "name": "Blank",
+          "slug": "layouts-blank",
+          "target": "_blank"
+        }
+      ]
+    },
+    {
+      "menuHeader": "Apps & Pages"
+    },
+    {
+      "name": "Account Settings",
+      "icon": "menu-icon icon-base ri ri-layout-left-line",
+      "slug": "pages-account-settings",
+      "submenu": [
+        {
+          "url": "pages/account-settings-account",
+          "name": "Account",
+          "slug": "pages-account-settings-account"
+        },
+        {
+          "url": "pages/account-settings-notifications",
+          "name": "Notifications",
+          "slug": "pages-account-settings-notifications"
+        },
+        {
+          "url": "pages/account-settings-connections",
+          "name": "Connections",
+          "slug": "pages-account-settings-connections"
+        }
+      ]
+    },
+    {
+      "name": "Authentications",
+      "icon": "menu-icon icon-base ri ri-shield-keyhole-line",
+      "slug": "auth",
+      "submenu": [
+        {
+          "url": "auth/login-basic",
+          "name": "Login",
+          "slug": "auth-login-basic",
+          "target": "_blank"
+        },
+        {
+          "url": "auth/register-basic",
+          "name": "Register",
+          "slug": "auth-register-basic",
+          "target": "_blank"
+        },
+        {
+          "url": "auth/forgot-password-basic",
+          "name": "Forgot Password",
+          "slug": "auth-forgot-password-basic",
+          "target": "_blank"
+        }
+      ]
+    },
+    {
+      "name": "Misc",
+      "icon": "menu-icon icon-base ri ri-box-3-line",
+      "slug": "pages-misc",
+      "submenu": [
+        {
+          "url": "pages/misc-error",
+          "name": "Error",
+          "slug": "pages-misc-error",
+          "target": "_blank"
+        },
+        {
+          "url": "pages/misc-under-maintenance",
+          "name": "Under Maintenance",
+          "slug": "pages-misc-under-maintenance",
+          "target": "_blank"
+        }
+      ]
+    },
+    {
+      "menuHeader": "Components"
+    },
+    {
+      "name": "Cards",
+      "icon": "menu-icon icon-base ri ri-bank-card-2-line",
+      "slug": "cards-basic",
+      "url": "cards/basic"
+    },
+    {
+      "name": "User interface",
+      "icon": "menu-icon icon-base ri ri-toggle-line",
+      "slug": "ui",
+      "submenu": [
+        {
+          "url": "ui/accordion",
+          "name": "Accordion",
+          "slug": "ui-accordion"
+        },
+        {
+          "url": "ui/alerts",
+          "name": "Alerts",
+          "slug": "ui-alerts"
+        },
+        {
+          "url": "ui/badges",
+          "name": "Badges",
+          "slug": "ui-badges"
+        },
+        {
+          "url": "ui/buttons",
+          "name": "Buttons",
+          "slug": "ui-buttons"
+        },
+        {
+          "url": "ui/carousel",
+          "name": "Carousel",
+          "slug": "ui-carousel"
+        },
+        {
+          "url": "ui/collapse",
+          "name": "Collapse",
+          "slug": "ui-collapse"
+        },
+        {
+          "url": "ui/dropdowns",
+          "name": "Dropdowns",
+          "slug": "ui-dropdowns"
+        },
+        {
+          "url": "ui/footer",
+          "name": "Footer",
+          "slug": "ui-footer"
+        },
+        {
+          "url": "ui/list-groups",
+          "name": "List Groups",
+          "slug": "ui-list-groups"
+        },
+        {
+          "url": "ui/modals",
+          "name": "Modals",
+          "slug": "ui-modals"
+        },
+        {
+          "url": "ui/navbar",
+          "name": "Navbar",
+          "slug": "ui-navbar"
+        },
+        {
+          "url": "ui/offcanvas",
+          "name": "Offcanvas",
+          "slug": "ui-offcanvas"
+        },
+        {
+          "url": "ui/pagination-breadcrumbs",
+          "name": "Pagination & Breadcrumbs",
+          "slug": "ui-pagination-breadcrumbs"
+        },
+        {
+          "url": "ui/progress",
+          "name": "Progress",
+          "slug": "ui-progress"
+        },
+        {
+          "url": "ui/spinners",
+          "name": "Spinners",
+          "slug": "ui-spinners"
+        },
+        {
+          "url": "ui/tabs-pills",
+          "name": "Tabs & Pills",
+          "slug": "ui-tabs-pills"
+        },
+        {
+          "url": "ui/toasts",
+          "name": "Toasts",
+          "slug": "ui-toasts"
+        },
+        {
+          "url": "ui/tooltips-popovers",
+          "name": "Tooltips & Popovers",
+          "slug": "ui-tooltips-popovers"
+        },
+        {
+          "url": "ui/typography",
+          "name": "Typography",
+          "slug": "ui-typography"
+        }
+      ]
+    },
+    {
+      "name": "Extended UI",
+      "icon": "menu-icon icon-base ri ri-box-3-line",
+      "slug": "extended",
+      "submenu": [
+        {
+          "url": "extended/ui-perfect-scrollbar",
+          "name": "Perfect Scrollbar",
+          "slug": "extended-ui-perfect-scrollbar"
+        },
+        {
+          "url": "extended/ui-text-divider",
+          "name": "Text Divider",
+          "slug": "extended-ui-text-divider"
+        }
+      ]
+    },
+    {
+      "url": "icons/icons-ri",
+      "icon": "menu-icon icon-base ri ri-remixicon-line",
+      "name": "Icons",
+      "slug": "icons-ri"
+    },
+    {
+      "menuHeader": "Forms & Tables"
+    },
+    {
+      "name": "Form Elements",
+      "icon": "menu-icon icon-base ri ri-radio-button-line",
+      "slug": "forms",
+      "submenu": [
+        {
+          "url": "forms/basic-inputs",
+          "name": "Basic Inputs",
+          "slug": "forms-basic-inputs"
+        },
+        {
+          "url": "forms/input-groups",
+          "name": "Input groups",
+          "slug": "forms-input-groups"
+        }
+      ]
+    },
+    {
+      "name": "Form Layouts",
+      "icon": "menu-icon icon-base ri ri-box-3-line",
+      "slug": "form-layouts",
+      "submenu": [
+        {
+          "url": "form/layouts-vertical",
+          "name": "Vertical Form",
+          "slug": "form-layouts-vertical"
+        },
+        {
+          "url": "form/layouts-horizontal",
+          "name": "Horizontal Form",
+          "slug": "form-layouts-horizontal"
+        }
+      ]
+    },
+    {
+      "url": "tables/basic",
+      "icon": "menu-icon icon-base ri ri-table-alt-line",
+      "name": "Tables",
+      "slug": "tables-basic"
+    }
+  ]
+}

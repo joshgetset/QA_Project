@@ -1,0 +1,32 @@
+<?php
+// Variables
+return [
+  "creatorName" => "",
+  "creatorUrl" => "",
+  "templateName" => "Executive Dashboard",
+  "templateSuffix" => "Admin Dashboard",
+  "templateVersion" => "2.0.0",
+  "templateFree" => true,
+  "templateDescription" => "Quality Assurance Management System",
+  "templateKeyword" => "university quality assurance",
+  "licenseUrl" => "",
+  "livePreview" => "",
+  "productPage" => "",
+  "support" => "",
+  "adminTemplates" => "",
+  "bootstrapDashboard" => "",
+  "ogTitle" => "Dashboard",
+  "ogImage" => "",
+  "ogType" => "website",
+  "moreThemes" => "",
+  "documentation" => "",
+  "repository" => "",
+  "gitRepo" => "",
+  "gitRepoAccess" => "",
+  "githubFreeUrl" => "",
+  "facebookUrl" => "",
+  "twitterUrl" => "",
+  "githubUrl" => "",
+  "dribbbleUrl" => "",
+  "instagramUrl" => ""
+];
