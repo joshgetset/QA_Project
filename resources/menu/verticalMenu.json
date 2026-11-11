@@ -7,97 +7,97 @@
       "slug": "dashboard-analytics",
       "submenu": [
         {
-          "url": "dashboard/systems/system-17",
+          "url": "dashboard/systems/comprehensive-enrolment-system",
           "name": "CES",
           "slug": "qams-system-system-17",
           "systemKey": "system-17"
         },
         {
-          "url": "dashboard/systems/human-resources",
+          "url": "dashboard/systems/human-resource-management-system",
           "name": "HRMIS",
           "slug": "qams-system-human-resources",
           "systemKey": "human-resources"
         },
         {
-          "url": "dashboard/systems/student-information",
+          "url": "dashboard/systems/student-information-system",
           "name": "SIS",
           "slug": "qams-system-student-information",
           "systemKey": "student-information"
         },
         {
-          "url": "dashboard/systems/learning-management",
+          "url": "dashboard/systems/learning-management-system",
           "name": "LMS",
           "slug": "qams-system-learning-management",
           "systemKey": "learning-management"
         },
         {
-          "url": "dashboard/systems/system-07",
+          "url": "dashboard/systems/online-admission-system",
           "name": "ODS",
           "slug": "qams-system-07",
           "systemKey": "system-07"
         },
         {
-          "url": "dashboard/systems/library-services",
+          "url": "dashboard/systems/online-clearance-system",
           "name": "OCMS",
           "slug": "qams-system-library-services",
           "systemKey": "library-services"
         },
         {
-          "url": "dashboard/systems/system-08",
+          "url": "dashboard/systems/procurement-management-system",
           "name": "PMIS",
           "slug": "qams-system-08",
           "systemKey": "system-08"
         },
         {
-          "url": "dashboard/systems/system-09",
+          "url": "dashboard/systems/policy-management-system",
           "name": "PoLMIS",
           "slug": "qams-system-09",
           "systemKey": "system-09"
         },
         {
-          "url": "dashboard/systems/system-10",
+          "url": "dashboard/systems/clinic-management-system",
           "name": "CMIS",
           "slug": "qams-system-10",
           "systemKey": "system-10"
         },
         {
-          "url": "dashboard/systems/system-11",
+          "url": "dashboard/systems/online-payslip-access-system",
           "name": "OPAS",
           "slug": "qams-system-11",
           "systemKey": "system-11"
         },
         {
-          "url": "dashboard/systems/research-management",
+          "url": "dashboard/systems/research-innovation-and-extension-services-management-system",
           "name": "RIESMIS",
           "slug": "qams-system-research-management",
           "systemKey": "research-management"
         },
         {
-          "url": "dashboard/systems/system-12",
+          "url": "dashboard/systems/automated-faculty-evaluation-system",
           "name": "AFES",
           "slug": "qams-system-12",
           "systemKey": "system-12"
         },
         {
-          "url": "dashboard/systems/system-13",
+          "url": "dashboard/systems/gender-and-development-system",
           "name": "GAD DB",
           "slug": "qams-system-13",
           "systemKey": "system-13"
         },
         {
-          "url": "dashboard/systems/finance",
+          "url": "dashboard/systems/slsu-web-based-integrated-payment-engine",
           "name": "SWIPE",
           "slug": "qams-system-finance",
           "systemKey": "finance"
         },
         {
-          "url": "dashboard/systems/system-14",
+          "url": "dashboard/systems/proximity-attendance-scanning-system",
           "name": "PASS",
           "slug": "qams-system-14",
           "systemKey": "system-14"
         },
         {
-          "url": "dashboard/systems/system-15",
+          "url": "dashboard/systems/designation-management-system",
           "name": "DMIS",
           "slug": "qams-system-15",
           "systemKey": "system-15"

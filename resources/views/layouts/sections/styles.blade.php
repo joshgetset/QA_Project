@@ -16,6 +16,7 @@
 
 <!-- Vendor Styles -->
 @vite('resources/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.scss')
+@vite('resources/assets/css/custom/system-animations.css')
 @yield('vendor-style')
 
 <!-- Page Styles -->

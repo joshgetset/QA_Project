@@ -48,24 +48,118 @@
   min-width: 0;
 }
 
-.qams-pillar-dropdown {
+.qams-pillar-selector {
   flex: 0 0 auto;
 }
 
-.qams-pillar-dropdown > .nav-link {
+.qams-pillar-form {
+  display: flex;
+  align-items: center;
+}
+
+.qams-account-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.qams-pillar-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.35rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.qams-pillar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  color: #566a7f;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.qams-pillar-label {
+  margin: 0;
+  color: #1f2937;
+  font-size: 0.875rem;
+  font-weight: 600;
   white-space: nowrap;
 }
 
-.qams-user-avatar {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  background-color: #063b73;
-  color: #fff;
-  font-size: 1rem;
+.qams-pillar-select {
+  width: auto;
+  min-width: 7.5rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0.15rem 1.2rem 0.15rem 0.1rem;
+  color: #111827;
+  font-size: 0.95rem;
   font-weight: 600;
+  line-height: 1.25;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+}
+
+.qams-pillar-select:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.qams-pillar-pill::after {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: -0.9rem;
+  border-left: 0.28rem solid transparent;
+  border-right: 0.28rem solid transparent;
+  border-top: 0.38rem solid #1f2937;
+  pointer-events: none;
+}
+
+.qams-user-avatar-shell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qams-user-avatar-shell::after {
+  content: "";
+  position: absolute;
+  right: 0.08rem;
+  bottom: 0.1rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #20c997;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.avatar .avatar-initial.qams-user-avatar {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  background: linear-gradient(180deg, #0b1f42 0%, #061d35 100%);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  box-shadow: 0 0.25rem 0.75rem rgba(11, 31, 66, 0.18);
 }
 
 .qams-user-avatar-large {
@@ -88,8 +182,29 @@
     display: none;
   }
 
-  .qams-pillar-dropdown {
+  .qams-pillar-selector {
     margin-right: 0.5rem !important;
+  }
+
+  .qams-pillar-form {
+    gap: 0.25rem;
+  }
+
+  .qams-pillar-options {
+    gap: 0.35rem;
+  }
+
+  .qams-pillar-options-list {
+    gap: 0.25rem;
+  }
+
+  .qams-pillar-label,
+  .qams-pillar-option .form-check-label {
+    font-size: 0.75rem;
+  }
+
+  .qams-pillar-icon {
+    display: none;
   }
 }
 

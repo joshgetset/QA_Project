@@ -7,6 +7,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use UnexpectedValueException;
 
 class QamsSystemData
@@ -39,7 +40,17 @@ class QamsSystemData
     {
         $system = config("qams.systems.{$key}");
 
-        return is_array($system) ? $this->get($key, $system) : null;
+        if (is_array($system)) {
+            return $this->get($key, $system);
+        }
+
+        foreach (config('qams.systems', []) as $systemKey => $system) {
+            if (Str::slug($system['name']) === $key) {
+                return $this->get($systemKey, $system);
+            }
+        }
+
+        return null;
     }
 
     private function get(string $key, array $system): array

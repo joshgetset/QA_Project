@@ -1,5 +1,6 @@
 @php
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 @endphp
 
 <ul class="menu-sub">
@@ -15,7 +16,10 @@ use Illuminate\Support\Facades\Route;
       if ($currentRouteName === $submenu->slug) {
           $activeClass = 'active';
       }
-      elseif ($currentRouteName === 'qams.system' && isset($submenu->systemKey) && $submenu->systemKey === request()->route('system')) {
+      elseif ($currentRouteName === 'qams.system' && isset($submenu->systemKey) && (
+          $submenu->systemKey === request()->route('system') ||
+          Str::slug(config("qams.systems.{$submenu->systemKey}.name", '')) === request()->route('system')
+      )) {
           $activeClass = 'active';
       }
       elseif (isset($submenu->submenu)) {
@@ -35,7 +39,7 @@ use Illuminate\Support\Facades\Route;
     @endphp
 
       <li class="menu-item {{$activeClass}}">
-        <a href="{{ isset($submenu->url) ? url($submenu->url) : 'javascript:void(0)' }}" class="{{ isset($submenu->submenu) ? 'menu-link menu-toggle' : 'menu-link' }}" @if (isset($submenu->target) and !empty($submenu->target)) target="_blank" @endif>
+        <a href="{{ isset($submenu->systemKey) ? route('qams.system', ['system' => Str::slug(config("qams.systems.{$submenu->systemKey}.name", $submenu->systemKey))]) : (isset($submenu->url) ? url($submenu->url) : 'javascript:void(0)') }}" class="{{ isset($submenu->submenu) ? 'menu-link menu-toggle' : 'menu-link' }}" @if (isset($submenu->target) and !empty($submenu->target)) target="_blank" @endif>
           @if (isset($submenu->icon))
           <i class="{{ $submenu->icon }}"></i>
           @endif

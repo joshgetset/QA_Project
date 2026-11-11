@@ -142,6 +142,476 @@
   font-size: 0.875rem;
 }
 
+.qams-dashboard-header {
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.qams-dashboard-controls {
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.qams-live-summary,
+.qams-refresh-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #e6eaf0;
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  background: #fff;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.qams-status-dot,
+.qams-category-dot,
+.qams-system-status {
+  display: inline-block;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.qams-status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.qams-status-live {
+  background-color: #20c997;
+}
+
+.qams-countdown-ring {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border: 2px solid rgb(6 59 115 / 20%);
+  border-top-color: #063b73;
+  border-radius: 50%;
+  color: #063b73;
+  font-size: 0.7rem;
+}
+
+.qams-summary-card {
+  overflow: hidden;
+  border: 1px solid #e6eaf0;
+  box-shadow: 0 3px 10px rgb(34 48 62 / 12%);
+}
+
+.qams-summary-card .card-body {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-content: start;
+  align-items: center;
+  column-gap: 0.7rem;
+  row-gap: 0.25rem;
+  padding: 1.1rem;
+}
+
+.qams-summary-icon {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  grid-row: span 2;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: rgb(6 59 115 / 9%);
+  color: #063b73;
+  font-size: 1.25rem;
+}
+
+.qams-summary-label {
+  color: #6f7d8c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.qams-summary-value {
+  grid-column: 1 / -1;
+  color: #202b3c;
+  font-size: clamp(1.5rem, 2vw, 1.85rem);
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.qams-summary-caption {
+  display: flex;
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: hidden;
+  color: #6f7d8c;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qams-summary-primary {
+  border-color: #0e345d;
+  background: linear-gradient(135deg, #173b66, #092541);
+  color: #fff;
+}
+
+.qams-summary-primary .qams-summary-icon {
+  background: rgb(255 255 255 / 13%);
+  color: #fff;
+}
+
+.qams-summary-primary .qams-summary-label,
+.qams-summary-primary .qams-summary-caption {
+  color: rgb(255 255 255 / 75%);
+}
+
+.qams-summary-primary .qams-summary-value {
+  color: #fff;
+}
+
+.qams-dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.25rem 0 1.5rem;
+}
+
+.qams-category-filters,
+.qams-view-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qams-category-filters {
+  min-width: 0;
+  overflow-x: auto;
+  padding: 0.15rem 0 0.4rem;
+}
+
+.qams-category-filter {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #e6eaf0;
+  border-radius: 999px;
+  background: #fff;
+  color: #566a7f;
+  font-size: 0.75rem;
+}
+
+.qams-category-filter.active {
+  border-color: #063b73;
+  background: #063b73;
+  color: #fff;
+}
+
+.qams-filter-count {
+  border-radius: 999px;
+  padding: 0.05rem 0.35rem;
+  background: rgb(111 125 140 / 12%);
+  font-size: 0.65rem;
+}
+
+.qams-category-filter.active .qams-filter-count {
+  background: rgb(255 255 255 / 18%);
+}
+
+.qams-category-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+}
+
+.qams-accent-academic {
+  background-color: #20c997;
+}
+
+.qams-accent-people {
+  background-color: #9361ff;
+}
+
+.qams-accent-finance {
+  background-color: #f2a100;
+}
+
+.qams-accent-health {
+  background-color: #f45678;
+}
+
+.qams-accent-research {
+  background-color: #14b8cf;
+}
+
+.qams-view-controls {
+  flex: 0 0 auto;
+}
+
+.qams-view-switch .btn {
+  min-width: 2.5rem;
+}
+
+.qams-sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #e6eaf0;
+  border-radius: 999px;
+  padding: 0 0.55rem;
+  color: #566a7f;
+}
+
+.qams-sort-control .form-select {
+  width: auto;
+  min-width: 7.5rem;
+  border: 0;
+  box-shadow: none;
+  font-size: 0.75rem;
+}
+
+.qams-system-section {
+  margin-bottom: 1.4rem;
+}
+
+.qams-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.qams-section-count {
+  color: #6f7d8c;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.qams-section-rule {
+  height: 1px;
+  flex: 1;
+  background: #e2e8f0;
+}
+
+.qams-system-card {
+  position: relative;
+  overflow: hidden;
+  border-top: 3px solid #20c997;
+  box-shadow: 0 3px 10px rgb(34 48 62 / 12%);
+}
+
+.qams-accent-border-people {
+  border-top-color: #9361ff;
+}
+
+.qams-accent-border-finance {
+  border-top-color: #f2a100;
+}
+
+.qams-accent-border-health {
+  border-top-color: #f45678;
+}
+
+.qams-accent-border-research {
+  border-top-color: #14b8cf;
+}
+
+.qams-system-card .card-body {
+  gap: 0.15rem;
+  padding: 0.9rem;
+}
+
+.qams-system-heading {
+  min-height: 3rem;
+  gap: 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.qams-system-title {
+  min-width: 0;
+  flex: 1;
+}
+
+.qams-system-short-name {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.qams-accent-text-academic {
+  color: #119d80;
+}
+
+.qams-accent-text-people {
+  color: #7d47eb;
+}
+
+.qams-accent-text-finance {
+  color: #bd7900;
+}
+
+.qams-accent-text-health {
+  color: #d5355a;
+}
+
+.qams-accent-text-research {
+  color: #07889b;
+}
+
+.qams-system-name {
+  color: #263445;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.qams-system-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  background: rgb(32 201 151 / 12%);
+  color: #119d80;
+  font-size: 1.2rem;
+}
+
+.qams-accent-icon-people {
+  background: rgb(147 97 255 / 12%);
+  color: #7d47eb;
+}
+
+.qams-accent-icon-finance {
+  background: rgb(242 161 0 / 13%);
+  color: #bd7900;
+}
+
+.qams-accent-icon-health {
+  background: rgb(244 86 120 / 12%);
+  color: #d5355a;
+}
+
+.qams-accent-icon-research {
+  background: rgb(20 184 207 / 12%);
+  color: #07889b;
+}
+
+.qams-system-status {
+  display: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  box-shadow: 0 0 0 3px rgb(32 201 151 / 15%);
+}
+
+.qams-status-demo {
+  background: #f2a100;
+  box-shadow: 0 0 0 3px rgb(242 161 0 / 16%);
+}
+
+.qams-status-unavailable {
+  background: #e63757;
+  box-shadow: 0 0 0 3px rgb(230 55 87 / 15%);
+}
+
+.qams-system-card .qams-metrics {
+  margin-top: 0.2rem;
+}
+
+.qams-system-card .qams-metric {
+  min-height: 0;
+  gap: 0.1rem;
+  padding: 0;
+  background: transparent;
+}
+
+.qams-system-card .qams-metric-value {
+  color: #202b3c;
+  font-size: 1.4rem;
+}
+
+.qams-system-card .qams-metric-label {
+  min-height: 1.5em;
+  color: #6f7d8c;
+  font-size: 0.72rem;
+}
+
+.qams-system-trend {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.35rem;
+}
+
+.qams-system-trend[hidden] {
+  display: none;
+}
+
+.qams-system-trend-change {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 0.2rem 0.45rem;
+  background: rgb(111 125 140 / 10%);
+  color: #6f7d8c;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.qams-trend-up {
+  background: rgb(32 201 151 / 12%);
+  color: #119d80;
+}
+
+.qams-trend-down {
+  background: rgb(230 55 87 / 10%);
+  color: #d5355a;
+}
+
+.qams-system-trend-chart {
+  min-width: 0;
+  height: 2.4rem;
+  flex: 1 1 auto;
+}
+
+.qams-system-grid.qams-list-view > .qams-system-column {
+  flex: 0 0 100%;
+  max-width: 100%;
+}
+
+.qams-system-grid.qams-list-view .qams-system-card .card-body {
+  flex-direction: row;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.qams-system-grid.qams-list-view .qams-system-heading {
+  width: min(45%, 25rem);
+  flex: 0 0 min(45%, 25rem);
+  margin: 0;
+}
+
+.qams-system-grid.qams-list-view .qams-metrics {
+  flex: 1;
+}
+
+.qams-no-results {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
 .qams-refresh-alert {
   margin-bottom: 1.5rem;
 }
@@ -156,7 +626,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 3rem;
 }
 
 .qams-detail-metric .qams-metric {
@@ -166,6 +636,318 @@
 
 .qams-detail-metric .qams-metric-value {
   font-size: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.qams-ces-filter-label {
+  margin-bottom: 0.5rem;
+  color: #063b73;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.qams-ces-filter-label .icon-base {
+  color: #063b73;
+  font-size: 1rem;
+}
+
+.qams-ces-filter-select {
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgb(34 48 62 / 10%);
+  color: #344054;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.qams-ces-summary-card {
+  border: 1px solid #e6eaf0;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(32 201 151 / 9%), transparent 48%),
+    #fff;
+  box-shadow: 0 3px 10px rgb(34 48 62 / 12%);
+}
+
+.qams-ces-summary-card .card-body {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto auto auto;
+  align-items: center;
+  min-height: 9rem;
+  column-gap: 0.65rem;
+  row-gap: 0.3rem;
+  padding: 1rem;
+}
+
+.qams-ces-summary-card .qams-summary-icon {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.7rem;
+  background: rgb(6 59 115 / 10%);
+  color: #063b73;
+  font-size: 1rem;
+}
+
+.qams-ces-summary-card .qams-summary-label {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  align-self: end;
+  color: #6f7d8c;
+}
+
+.qams-ces-summary-card .qams-summary-value {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  margin: 0;
+  color: #202b3c;
+  font-size: 1.65rem;
+  line-height: 1.1;
+}
+
+.qams-ces-summary-card .qams-summary-caption {
+  grid-column: 1 / -1;
+  grid-row: 5;
+  color: #7a8699;
+}
+
+.qams-ces-summary-primary {
+  border-color: #12355f;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(32 201 151 / 12%), transparent 45%),
+    linear-gradient(135deg, #173b66, #092541);
+}
+
+.qams-ces-summary-primary .qams-summary-icon {
+  background: #fff;
+  color: #063b73;
+}
+
+.qams-ces-summary-primary .qams-summary-label,
+.qams-ces-summary-primary .qams-summary-caption {
+  color: rgb(255 255 255 / 72%);
+}
+
+.qams-ces-summary-primary .qams-summary-value {
+  color: #fff;
+}
+
+.qams-ces-summary-card .qams-summary-value {
+  margin-top: 0.1rem;
+}
+
+.qams-ces-demographic-card {
+  border: 1px solid #e6eaf0;
+  box-shadow: 0 4px 12px rgb(34 48 62 / 12%);
+}
+
+.qams-ces-demographic-card .card-body {
+  display: flex;
+  min-height: 12.5rem;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.25rem;
+}
+
+.qams-ces-demographic-card .card-title {
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.qams-ces-demographic-total {
+  color: #202b3c;
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.qams-ces-demographic-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.65rem;
+  background: rgb(6 59 115 / 10%);
+  color: #063b73;
+  font-size: 1rem;
+}
+
+.qams-ces-demographic-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.qams-ces-demographic-copy {
+  min-width: 0;
+}
+
+.qams-ces-demographic-count {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  color: #7a8699;
+  font-size: 0.7rem;
+}
+
+.qams-ces-demographic-count .qams-ces-demographic-total {
+  color: #202b3c;
+  font-size: 1.85rem;
+}
+
+.qams-ces-demographic-chart {
+  width: 100%;
+  height: 0.6rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background-color: #eef0ff;
+}
+
+.qams-ces-demographic-chart .progress-bar {
+  transition: width 180ms ease-in-out;
+}
+
+.qams-ces-demographic-chart[hidden] {
+  display: none;
+}
+
+.qams-ces-demographic-chart-wrap {
+  display: flex;
+  min-height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.qams-ces-demographic-empty {
+  display: grid;
+  width: 100%;
+  min-height: 3.75rem;
+  place-items: center;
+  border: 1px dashed #dfe3eb;
+  border-radius: 0.65rem;
+  color: #7a8699;
+  font-size: 0.72rem;
+}
+
+.qams-ces-demographic-empty[hidden] {
+  display: none;
+}
+
+.qams-ces-gender-values {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  color: #6f7d8c;
+  font-size: 0.72rem;
+}
+
+.qams-ces-gender-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+  color: #6f7d8c;
+  font-size: 0.72rem;
+}
+
+.qams-ces-gender-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.qams-ces-gender-values > span {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 50%;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.qams-ces-gender-label,
+.qams-ces-gender-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.qams-ces-gender-count {
+  color: #202b3c;
+  font-size: 0.9rem;
+}
+
+.qams-ces-gender-count small {
+  color: #7a8699;
+  font-size: 0.65rem;
+}
+
+.qams-ces-gender-values strong {
+  color: #344054;
+  font-weight: 700;
+}
+
+.qams-ces-legend-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.qams-ces-male {
+  background: #696cff;
+}
+
+.qams-ces-female {
+  background: #ff6f91;
+}
+
+.qams-ces-view-toggle .btn {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  place-items: center;
+  border-color: #e6eaf0;
+  color: #7a8699;
+  font-size: 1rem;
+}
+
+.qams-ces-view-toggle .btn.active {
+  border-color: #063b73;
+  background: #063b73;
+  color: #fff;
+}
+
+.qams-ces-demographic-cards[hidden],
+.qams-ces-demographic-overview[hidden] {
+  display: none !important;
+}
+
+.qams-ces-demographic-overview {
+  border: 1px solid #e6eaf0;
+  box-shadow: 0 4px 12px rgb(34 48 62 / 12%);
+}
+
+.qams-ces-demographic-overview .card-body {
+  padding: 1.25rem;
+}
+
+.qams-ces-demographic-overview .card-title {
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.qams-ces-demographic-overview-chart {
+  min-height: 18.75rem;
+}
+
+.qams-system-detail .card {
+  box-shadow: 0 5px 16px rgb(34 48 62 / 18%);
 }
 
 @media (max-width: 767.98px) {
@@ -182,6 +964,7 @@
   .qams-detail-header {
     flex-direction: column;
   }
+
 }
 
 @media (max-width: 575.98px) {
@@ -201,5 +984,42 @@
 
   .qams-metric-label {
     font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .qams-dashboard-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .qams-view-controls {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .qams-dashboard-controls {
+    align-items: flex-start;
+  }
+
+  .qams-live-summary,
+  .qams-refresh-countdown {
+    font-size: 0.6875rem;
+  }
+
+  .qams-category-filters {
+    margin-inline: -0.25rem;
+  }
+
+  .qams-system-grid.qams-list-view .qams-system-card .card-body {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .qams-system-grid.qams-list-view .qams-system-heading {
+    width: 100%;
+    flex-basis: auto;
   }
 }

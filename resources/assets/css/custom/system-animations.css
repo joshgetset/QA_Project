@@ -1,0 +1,94 @@
+@media (prefers-reduced-motion: no-preference) {
+  .qams-dashboard .qams-number-scroll,
+  .qams-system-detail .qams-number-scroll {
+    display: inline-block;
+    gap: 0;
+    line-height: inherit;
+    vertical-align: baseline;
+    white-space: nowrap;
+  }
+
+  .qams-dashboard,
+  .qams-system-detail {
+    animation: qams-page-enter 420ms ease-out both;
+  }
+
+  .qams-dashboard > *,
+  .qams-system-detail > * {
+    animation: qams-element-enter 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .qams-dashboard .card,
+  .qams-system-detail .card {
+    animation: qams-element-enter 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    transition:
+      box-shadow 180ms ease,
+      border-color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .qams-dashboard .row > .col:nth-child(2) .card,
+  .qams-system-detail .row > .col:nth-child(2) .card {
+    animation-delay: 50ms;
+  }
+
+  .qams-dashboard .row > .col:nth-child(3) .card,
+  .qams-system-detail .row > .col:nth-child(3) .card {
+    animation-delay: 100ms;
+  }
+
+  .qams-dashboard .row > .col:nth-child(4) .card,
+  .qams-system-detail .row > .col:nth-child(4) .card {
+    animation-delay: 150ms;
+  }
+
+  .qams-dashboard .row > .col:nth-child(5) .card,
+  .qams-system-detail .row > .col:nth-child(5) .card {
+    animation-delay: 200ms;
+  }
+
+  .qams-dashboard .row > .col:nth-child(6) .card,
+  .qams-system-detail .row > .col:nth-child(6) .card {
+    animation-delay: 250ms;
+  }
+
+  .qams-dashboard :is(.btn, .form-select, .form-control),
+  .qams-system-detail :is(.btn, .form-select, .form-control) {
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .qams-dashboard .btn:active,
+  .qams-system-detail .btn:active {
+    transform: scale(0.97);
+  }
+
+  .qams-ces-demographic-cards:not([hidden]),
+  .qams-ces-demographic-overview:not([hidden]) {
+    animation: qams-element-enter 280ms ease-out both;
+  }
+}
+
+@keyframes qams-page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes qams-element-enter {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}

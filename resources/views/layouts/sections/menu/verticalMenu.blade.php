@@ -1,5 +1,6 @@
 @php
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 @endphp
 <aside id="layout-menu" class="layout-menu menu-vertical menu">
 
@@ -40,7 +41,10 @@ use Illuminate\Support\Facades\Route;
         $activeClass = isset($menu->submenu) && ! $isExecutiveDashboardMenu ? 'active open' : 'active';
         }
         elseif (isset($menu->submenu)) {
-        if ($currentRouteName === 'qams.system' && collect($menu->submenu)->contains(fn ($item) => isset($item->systemKey) && $item->systemKey === request()->route('system'))) {
+        if ($currentRouteName === 'qams.system' && collect($menu->submenu)->contains(fn ($item) => isset($item->systemKey) && (
+            $item->systemKey === request()->route('system') ||
+            Str::slug(config("qams.systems.{$item->systemKey}.name", '')) === request()->route('system')
+        ))) {
         $activeClass = 'active open';
         }
         if (gettype($menu->slug) === 'array') {

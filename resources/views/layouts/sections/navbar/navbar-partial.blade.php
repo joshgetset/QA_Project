@@ -12,51 +12,41 @@
     <div class="navbar-nav align-items-center qams-navbar-search">
         <div class="nav-item d-flex align-items-center">
             <i class="icon-base ri ri-search-line icon-lg lh-0"></i>
-            <input type="search" class="form-control border-0 shadow-none qams-navbar-search-input" placeholder="Search..." aria-label="Search...">
+            <input
+                type="search"
+                class="form-control border-0 shadow-none qams-navbar-search-input"
+                placeholder="{{ request()->routeIs('dashboard-analytics') ? 'Search systems...' : 'Search...' }}"
+                aria-label="{{ request()->routeIs('dashboard-analytics') ? 'Search systems' : 'Search' }}"
+                @if (request()->routeIs('dashboard-analytics')) data-qams-system-search @endif
+            >
         </div>
     </div>
     <!-- /Search -->
     <ul class="navbar-nav flex-row align-items-center ms-auto">
-        <li class="nav-item dropdown me-3 qams-pillar-dropdown">
-            <a
-                class="nav-link dropdown-toggle"
-                href="javascript:void(0);"
-                data-bs-toggle="dropdown"
-                data-bs-auto-close="outside"
-                aria-expanded="false"
-                aria-label="Select pillar"
-            >
-                <i class="icon-base ri ri-focus-3-line me-1"></i>
-                <span class="qams-pillar-label">Pillar:</span>
-                <span class="fw-semibold">{{ session('pillar', 'National') }}</span>
-            </a>
-            <div class="dropdown-menu dropdown-menu-end p-3">
-                <form method="POST" action="{{ route('pillar.update') }}">
-                    @csrf
-                    <fieldset>
-                        <legend class="form-label fw-semibold mb-2">Select pillar</legend>
+        <li class="nav-item me-3 qams-pillar-selector">
+            <form method="POST" action="{{ route('pillar.update') }}" class="qams-pillar-form">
+                @csrf
+                <div class="qams-pillar-pill" aria-label="Select pillar">
+                    <i class="icon-base ri ri-government-line qams-pillar-icon" aria-hidden="true"></i>
+                    <label class="qams-pillar-label" for="qams-pillar-select">Pillar:</label>
+                    <select
+                        id="qams-pillar-select"
+                        class="form-select form-select-sm qams-pillar-select"
+                        name="pillar"
+                        aria-label="Select pillar"
+                        onchange="this.form.requestSubmit()"
+                    >
                         @foreach (['National', 'International', 'Institutional'] as $pillar)
-                            <div class="form-check mb-2">
-                                <input
-                                    class="form-check-input"
-                                    type="radio"
-                                    name="pillar"
-                                    id="pillar-{{ strtolower($pillar) }}"
-                                    value="{{ $pillar }}"
-                                    @checked(session('pillar', 'National') === $pillar)
-                                >
-                                <label class="form-check-label" for="pillar-{{ strtolower($pillar) }}">{{ $pillar }}</label>
-                            </div>
+                            <option value="{{ $pillar }}" @selected(session('pillar', 'National') === $pillar)>{{ $pillar }}</option>
                         @endforeach
-                    </fieldset>
-                    <button class="btn btn-primary btn-sm w-100 mt-2" type="submit">Apply pillar</button>
-                </form>
-            </div>
+                    </select>
+                </div>
+            </form>
         </li>
         <!-- User -->
         <li class="nav-item navbar-dropdown dropdown-user dropdown">
             <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
-                <div class="avatar avatar-online">
+                <div class="avatar avatar-online qams-user-avatar-shell">
                     <span class="avatar-initial rounded-circle qams-user-avatar" aria-label="{{ auth()->user()->name }}">
                         {{ mb_substr(auth()->user()->name, 0, 1) }}
                     </span>

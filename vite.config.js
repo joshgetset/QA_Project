@@ -42,6 +42,7 @@ export default defineConfig({
         'resources/css/app.css',
         'resources/assets/css/custom/login.css',
         'resources/assets/css/custom/dashboard.css',
+        'resources/assets/css/custom/system-animations.css',
         'resources/assets/css/demo.css',
         'resources/js/app.js',
         'resources/assets/js/custom/login.js',

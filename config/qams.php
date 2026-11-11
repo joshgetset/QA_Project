@@ -2,6 +2,88 @@
 
 return [
     'refresh_interval' => 30,
+    'short_names' => [
+        'system-17' => 'CES',
+        'human-resources' => 'HRMIS',
+        'student-information' => 'SIS',
+        'learning-management' => 'LMS',
+        'system-07' => 'ODS',
+        'library-services' => 'OCMS',
+        'system-08' => 'PMIS',
+        'system-09' => 'PoLMIS',
+        'system-10' => 'CMIS',
+        'system-11' => 'OPAS',
+        'research-management' => 'RIESMIS',
+        'system-12' => 'AFES',
+        'system-13' => 'GAD DB',
+        'finance' => 'SWIPE',
+        'system-14' => 'PASS',
+        'system-15' => 'DMIS',
+    ],
+    'categories' => [
+        'academic' => [
+            'name' => 'Academic Services',
+            'systems' => ['system-17', 'student-information', 'learning-management', 'system-07', 'library-services'],
+        ],
+        'people' => [
+            'name' => 'People & HR',
+            'systems' => ['human-resources', 'system-12', 'system-14', 'system-15'],
+        ],
+        'finance' => [
+            'name' => 'Finance',
+            'systems' => ['system-08', 'system-11', 'finance'],
+        ],
+        'health' => [
+            'name' => 'Health',
+            'systems' => ['system-10', 'system-13'],
+        ],
+        'research' => [
+            'name' => 'Research',
+            'systems' => ['system-09', 'research-management'],
+        ],
+    ],
+    'ces_analytics' => [
+        'filters' => [
+            'campus' => [
+                ['value' => 'campus-a', 'label' => 'Sample Campus A', 'factor' => 0.62],
+                ['value' => 'campus-b', 'label' => 'Sample Campus B', 'factor' => 0.38],
+            ],
+            'college' => [
+                ['value' => 'college-a', 'label' => 'Sample College A', 'factor' => 0.38],
+                ['value' => 'college-b', 'label' => 'Sample College B', 'factor' => 0.34],
+                ['value' => 'college-c', 'label' => 'Sample College C', 'factor' => 0.28],
+            ],
+            'program' => [
+                ['value' => 'program-a', 'label' => 'Sample Program A', 'factor' => 0.38],
+                ['value' => 'program-b', 'label' => 'Sample Program B', 'factor' => 0.34],
+                ['value' => 'program-c', 'label' => 'Sample Program C', 'factor' => 0.28],
+            ],
+            'year' => [
+                ['value' => '2022-2023', 'label' => '2022–2023', 'factor' => 0.16],
+                ['value' => '2023-2024', 'label' => '2023–2024', 'factor' => 0.18],
+                ['value' => '2024-2025', 'label' => '2024–2025', 'factor' => 0.20],
+                ['value' => '2025-2026', 'label' => '2025–2026', 'factor' => 0.22],
+                ['value' => '2026-2027', 'label' => '2026–2027', 'factor' => 0.24],
+            ],
+        ],
+        'summary' => [
+            ['key' => 'total-enrolled-students', 'label' => 'Total Enrolled Students', 'value' => 8420, 'icon' => 'ri ri-graduation-cap-line'],
+            ['key' => 'graduating-enrollees', 'label' => 'Graduating Enrollees', 'value' => 684, 'icon' => 'ri ri-award-line'],
+            ['key' => 'new-freshman', 'label' => 'New Freshman', 'value' => 1248, 'icon' => 'ri ri-user-add-line'],
+        ],
+        'demographics' => [
+            ['key' => 'international-students', 'label' => 'International Students', 'icon' => 'ri ri-global-line', 'male' => 18, 'female' => 24],
+            ['key' => '4ps-beneficiaries', 'label' => "4P's Beneficiaries", 'icon' => 'ri ri-hand-heart-line', 'male' => 438, 'female' => 506],
+            ['key' => 'children-of-ofws', 'label' => 'Children of OFWs', 'icon' => 'ri ri-plane-line', 'male' => 212, 'female' => 249],
+            ['key' => 'persons-deprived-of-liberty', 'label' => 'Persons Deprived of Liberty', 'icon' => 'ri ri-lock-line', 'male' => 8, 'female' => 3],
+            ['key' => 'special-needs', 'label' => 'With Special Needs', 'icon' => 'ri ri-wheelchair-line', 'male' => 37, 'female' => 42],
+            ['key' => 'working-students', 'label' => 'Working Students', 'icon' => 'ri ri-briefcase-line', 'male' => 324, 'female' => 391],
+            ['key' => 'indigenous-people', 'label' => 'Indigenous People', 'icon' => 'ri ri-community-line', 'male' => 116, 'female' => 132],
+            ['key' => 'solo-parents', 'label' => 'Solo Parents', 'icon' => 'ri ri-user-heart-line', 'male' => 53, 'female' => 71],
+            ['key' => 'persons-with-disabilities', 'label' => 'Persons with Disabilities', 'icon' => 'ri ri-accessibility-line', 'male' => 29, 'female' => 36],
+            ['key' => 'first-generation-learners', 'label' => 'First Generation Learners', 'icon' => 'ri ri-book-open-line', 'male' => 684, 'female' => 792],
+        ],
+    ],
     'systems' => [
         'system-17' => [
             'name' => 'Comprehensive Enrolment System',
@@ -70,7 +152,7 @@ return [
             ],
         ],
         'system-08' => [
-            'name' => 'Procurement Management Information System',
+            'name' => 'Procurement Management System',
             'description' => 'Procurement requests and processing',
             'icon' => 'ri ri-shopping-cart-2-line',
             'endpoint' => env('QAMS_SYSTEM_08_API_URL'),
@@ -92,7 +174,7 @@ return [
             ],
         ],
         'system-10' => [
-            'name' => 'Clinic Management Information System',
+            'name' => 'Clinic Management System',
             'description' => 'University clinic visits and health services',
             'icon' => 'ri ri-heart-pulse-line',
             'endpoint' => env('QAMS_SYSTEM_10_API_URL'),
@@ -169,7 +251,7 @@ return [
             ],
         ],
         'system-15' => [
-            'name' => 'Designation Management Information System',
+            'name' => 'Designation Management System',
             'description' => 'University designations and assignments',
             'icon' => 'ri ri-briefcase-3-line',
             'endpoint' => env('QAMS_SYSTEM_15_API_URL'),

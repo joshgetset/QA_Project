@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class QamsDashboardTest extends TestCase
@@ -27,17 +28,28 @@ class QamsDashboardTest extends TestCase
             ->assertSee('Student Information System')
             ->assertSee('8,420')
             ->assertSeeInOrder(['8,420', 'Enrolled students'])
-            ->assertSee('Designation Management Information System')
-            ->assertSee(route('qams.system', ['system' => 'student-information']))
+            ->assertSee('Designation Management System')
+            ->assertSee(route('qams.system', ['system' => 'student-information-system']))
             ->assertSee('qams-system-card-link')
             ->assertDontSee('qams-system-open')
-            ->assertSee('dashboard/systems/system-15')
+            ->assertSee('dashboard/systems/designation-management-system')
             ->assertSee('Executive Dashboard')
-            ->assertSee('row-cols-xxl-5')
+            ->assertSee('row-cols-xxl-4')
             ->assertSee('qams-system-heading')
+            ->assertSee('Systems monitored')
+            ->assertSee('Enrolled students')
+            ->assertSee('University personnel')
+            ->assertSee('Academic Services')
+            ->assertSee('People & HR')
+            ->assertSee('Finance')
+            ->assertSee('Health')
+            ->assertSee('Research')
+            ->assertSee('data-qams-system-search')
+            ->assertSeeHtml('data-view-mode="grid"')
+            ->assertSee('data-system-sort')
             ->assertDontSee('Systems Overview')
             ->assertDontSee('data-source-badge')
-            ->assertDontSee('Sample data')
+            ->assertSeeHtml('title="Sample data"')
             ->assertDontSee('Active programs')
             ->assertDontSee('Example values for layout preview')
             ->assertDontSee('Sample values · No API connected')
@@ -45,6 +57,9 @@ class QamsDashboardTest extends TestCase
 
         $systemNames = array_column(config('qams.systems'), 'name');
         $this->assertCount(16, $systemNames);
+        $categorizedSystemKeys = array_merge(...array_column(config('qams.categories'), 'systems'));
+        $this->assertEqualsCanonicalizing(array_keys(config('qams.systems')), $categorizedSystemKeys);
+        $this->assertCount(16, config('qams.short_names'));
         $this->assertSame([
             'Comprehensive Enrolment System',
             'Human Resource Management System',
@@ -52,30 +67,56 @@ class QamsDashboardTest extends TestCase
             'Learning Management System',
             'Online Admission System',
             'Online Clearance System',
-            'Procurement Management Information System',
+            'Procurement Management System',
             'Policy Management System',
-            'Clinic Management Information System',
+            'Clinic Management System',
             'Online Payslip Access System',
             'Research, Innovation, and Extension Services Management System',
             'Automated Faculty Evaluation System',
             'Gender and Development System',
             'SLSU Web-based Integrated Payment Engine',
             'Proximity Attendance Scanning System',
-            'Designation Management Information System',
+            'Designation Management System',
         ], $systemNames);
-        $this->assertSame(
-            $systemNames,
-            array_column(
-                json_decode(file_get_contents(resource_path('menu/verticalMenu.json')), true, flags: JSON_THROW_ON_ERROR)['menu'][0]['submenu'],
-                'name'
-            )
-        );
+        $systemMenu = json_decode(
+            file_get_contents(resource_path('menu/verticalMenu.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR
+        )['menu'][0]['submenu'];
+
+        $this->assertSame([
+            'CES',
+            'HRMIS',
+            'SIS',
+            'LMS',
+            'ODS',
+            'OCMS',
+            'PMIS',
+            'PoLMIS',
+            'CMIS',
+            'OPAS',
+            'RIESMIS',
+            'AFES',
+            'GAD DB',
+            'SWIPE',
+            'PASS',
+            'DMIS',
+        ], array_column($systemMenu, 'name'));
+
+        foreach ($systemMenu as $menuItem) {
+            $system = config("qams.systems.{$menuItem['systemKey']}");
+
+            $this->assertSame(
+                'dashboard/systems/'.Str::slug($system['name']),
+                $menuItem['url']
+            );
+        }
     }
 
     public function test_clicking_a_system_card_opens_its_total_metrics_page(): void
     {
         $this->actingAs(User::factory()->make())
-            ->get(route('qams.system', ['system' => 'student-information']))
+            ->get(route('qams.system', ['system' => 'student-information-system']))
             ->assertOk()
             ->assertViewIs('personal.system-metrics')
             ->assertSee('Total Metrics')
@@ -84,11 +125,68 @@ class QamsDashboardTest extends TestCase
             ->assertSee('Systems Overview');
     }
 
+    public function test_ces_metrics_page_shows_filtered_enrollment_and_gender_analytics(): void
+    {
+        $response = $this->actingAs(User::factory()->make())
+            ->get(route('qams.system', ['system' => 'comprehensive-enrolment-system']));
+
+        $response->assertOk()
+            ->assertViewIs('personal.system-metrics')
+            ->assertDontSee('Enrollment Analytics')
+            ->assertDontSee('Explore student metrics by campus, college, and program.')
+            ->assertDontSee('These preview figures are illustrative and are not live CES records.')
+            ->assertSee('Campus')
+            ->assertSee('College')
+            ->assertSee('Program')
+            ->assertSee('Academic Year')
+            ->assertSee('2022–2023')
+            ->assertSee('2026–2027')
+            ->assertSee('data-ces-filter="year"', false)
+            ->assertSee('Graduating Enrollees')
+            ->assertSee('New Freshman')
+            ->assertSee('Total Enrolled Students')
+            ->assertSee('International Students')
+            ->assertSee("4P&#039;s Beneficiaries", false)
+            ->assertSee('Children of OFWs')
+            ->assertSee('Persons Deprived of Liberty')
+            ->assertSee('With Special Needs')
+            ->assertSee('Working Students')
+            ->assertSee('Indigenous People')
+            ->assertSee('Solo Parents')
+            ->assertSee('Persons with Disabilities')
+            ->assertSee('First Generation Learners')
+            ->assertDontSee('Largest cohort')
+            ->assertDontSee('Share of tracked students')
+            ->assertDontSee('Illustrative sample data')
+            ->assertSee('data-ces-view="cards"', false)
+            ->assertSee('data-ces-view="chart"', false)
+            ->assertSee('data-ces-demographic-overview', false)
+            ->assertSee('data-ces-demographic-chart', false)
+            ->assertSee('ri ri-global-line', false)
+            ->assertSee('ri ri-hand-heart-line', false)
+            ->assertSee('ri ri-plane-line', false)
+            ->assertSee('ri ri-wheelchair-line', false)
+            ->assertDontSee('qams-ces-summary-change', false)
+            ->assertDontSee('qams-ces-female-share', false);
+
+        self::assertLessThan(
+            strpos($response->getContent(), 'data-ces-summary="graduating-enrollees"'),
+            strpos($response->getContent(), 'data-ces-summary="total-enrolled-students"')
+        );
+    }
+
     public function test_unknown_system_metrics_page_returns_not_found(): void
     {
         $this->actingAs(User::factory()->make())
             ->get(route('qams.system', ['system' => 'unknown']))
             ->assertNotFound();
+    }
+
+    public function test_legacy_system_key_url_redirects_to_the_system_name_url(): void
+    {
+        $this->actingAs(User::factory()->make())
+            ->get(route('qams.system', ['system' => 'system-17']))
+            ->assertRedirect(route('qams.system', ['system' => 'comprehensive-enrolment-system']));
     }
 
     public function test_systems_api_returns_normalized_data_from_a_configured_system(): void
@@ -159,6 +257,8 @@ class QamsDashboardTest extends TestCase
             ->assertSee('National')
             ->assertSee('International')
             ->assertSee('Institutional')
+            ->assertSee('qams-pillar-selector')
+            ->assertSeeHtml('id="qams-pillar-select"')
             ->assertSee('qams-navbar-search-input')
             ->assertSee('qams-user-avatar')
             ->assertSee('menu-active-route')
@@ -173,13 +273,13 @@ class QamsDashboardTest extends TestCase
         $this->actingAs(User::factory()->make())
             ->get(route('pages-account-settings-account'))
             ->assertOk()
-            ->assertSeeHtml('href="' . route('dashboard-analytics') . '" class="menu-link "');
+            ->assertSeeHtml('href="'.route('dashboard-analytics').'" class="menu-link "');
     }
 
     public function test_executive_dashboard_menu_stays_open_on_a_system_page(): void
     {
         $this->actingAs(User::factory()->make())
-            ->get(route('qams.system', ['system' => 'student-information']))
+            ->get(route('qams.system', ['system' => 'student-information-system']))
             ->assertOk()
             ->assertSee('menu-item active open')
             ->assertSeeHtml('href="javascript:void(0);" class="menu-link menu-toggle "');
@@ -196,7 +296,9 @@ class QamsDashboardTest extends TestCase
         $this->get(route('dashboard-analytics'))
             ->assertOk()
             ->assertSee('Pillar:')
-            ->assertSee('International');
+            ->assertSee('International')
+            ->assertSeeHtml('id="qams-pillar-select"')
+            ->assertSeeHtml('value="International" selected');
     }
 
     public function test_invalid_pillar_selection_is_rejected(): void
