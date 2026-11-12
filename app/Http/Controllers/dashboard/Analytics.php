@@ -14,7 +14,7 @@ class Analytics extends Controller
     public function index()
     {
         return view('personal.dashboard', [
-            'systems' => $this->systemData->all(),
+            'systems' => $this->systemData->snapshot(),
             'categories' => config('qams.categories', []),
             'shortNames' => config('qams.short_names', []),
         ]);
@@ -30,19 +30,23 @@ class Analytics extends Controller
 
     public function showSystem(string $system)
     {
-        $systemData = $this->systemData->find($system);
+        $systemDefinition = $this->systemData->definition($system);
 
-        abort_if($systemData === null, 404);
+        abort_if($systemDefinition === null, 404);
 
-        $canonicalSlug = Str::slug($systemData['name']);
+        $canonicalSlug = Str::slug($systemDefinition['name']);
 
         if ($system !== $canonicalSlug) {
             return redirect()->route('qams.system', ['system' => $canonicalSlug]);
         }
 
+        $systemData = $systemDefinition['key'] === 'system-17'
+            ? $systemDefinition
+            : $this->systemData->find($system);
+
         return view('personal.system-metrics', [
             'system' => $systemData,
-            'cesAnalytics' => $systemData['key'] === 'system-17' ? config('qams.ces_analytics') : null,
+            'cesAnalytics' => $systemDefinition['key'] === 'system-17' ? config('qams.ces_analytics') : null,
         ]);
     }
 }

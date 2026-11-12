@@ -10,6 +10,7 @@
 @vite(['resources/assets/js/main.js'])
 
 <!-- END: Theme JS-->
+@vite(['resources/assets/js/qams-confirmations.js'])
 <!-- Pricing Modal JS-->
 @stack('pricing-script')
 <!-- END: Pricing Modal JS-->

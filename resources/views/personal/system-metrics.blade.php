@@ -27,12 +27,11 @@
 
     @if ($cesAnalytics)
             @php
-                $cesDemographics = collect($cesAnalytics['demographics'])
-                    ->sortByDesc(fn ($demographic) => $demographic['male'] + $demographic['female'])
-                    ->values();
+                $cesDemographics = collect($cesAnalytics['demographics']);
             @endphp
-            <div class="qams-ces-analytics" data-ces-analytics>
+            <div class="qams-ces-analytics" data-ces-analytics data-ces-analytics-url="{{ route('qams.ces.analytics') }}">
             <script type="application/json" data-ces-analytics-data>@json($cesAnalytics)</script>
+            <p class="alert" data-ces-analytics-status role="status" aria-live="polite" hidden></p>
             <section class="mb-4" aria-label="Filter enrollment analytics">
                 <div class="row g-3">
                         @foreach (['campus' => 'Campus', 'college' => 'College', 'program' => 'Program', 'year' => 'Academic Year'] as $filterKey => $filterLabel)
@@ -41,7 +40,7 @@
                                     <i class="icon-base {{ ['campus' => 'ri ri-building-2-line', 'college' => 'ri ri-government-line', 'program' => 'ri ri-graduation-cap-line', 'year' => 'ri ri-calendar-2-line'][$filterKey] }} me-1" aria-hidden="true"></i>{{ $filterLabel }}
                                 </label>
                                 <select class="form-select qams-ces-filter-select" id="ces-filter-{{ $filterKey }}" data-ces-filter="{{ $filterKey }}">
-                                    <option value="">{{ ['campus' => 'All Campuses', 'college' => 'All Colleges', 'program' => 'All Programs', 'year' => 'All Academic Years'][$filterKey] }}</option>
+                                    <option value="">{{ ['campus' => 'All Campuses', 'college' => 'All Colleges', 'program' => 'All Programs', 'year' => 'Latest Academic Year'][$filterKey] }}</option>
                                     @foreach ($cesAnalytics['filters'][$filterKey] as $option)
                                         <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                                     @endforeach
@@ -58,8 +57,8 @@
                             <div class="card-body">
                                 <span class="qams-summary-icon"><i class="icon-base {{ $metric['icon'] }}" aria-hidden="true"></i></span>
                                 <span class="qams-summary-label">{{ $metric['label'] }}</span>
-                                <strong class="qams-summary-value" data-ces-summary="{{ $metric['key'] }}">{{ number_format($metric['value']) }}</strong>
-                                <span class="qams-summary-caption">Illustrative student count</span>
+                                <strong class="qams-summary-value" data-ces-summary="{{ $metric['key'] }}">—</strong>
+                                <span class="qams-summary-caption">Live CES registration count</span>
                             </div>
                         </article>
                     </div>
@@ -101,15 +100,13 @@
                                     </div>
                                 </div>
                                 <div class="qams-ces-demographic-count">
-                                    <strong class="qams-ces-demographic-total" data-ces-demographic-total="{{ $demographic['key'] }}">{{ number_format($demographic['male'] + $demographic['female']) }}</strong>
+                                    <strong class="qams-ces-demographic-total" data-ces-demographic-total="{{ $demographic['key'] }}">—</strong>
                                     <span>students</span>
                                 </div>
                                 <div class="qams-ces-demographic-chart-wrap">
                                     <div
                                         class="progress qams-ces-demographic-chart"
                                         data-ces-demographic-chart="{{ $demographic['key'] }}"
-                                        data-male="{{ $demographic['male'] }}"
-                                        data-female="{{ $demographic['female'] }}"
                                         role="img"
                                         aria-label="{{ $demographic['label'] }} gender distribution"
                                     >
@@ -123,11 +120,11 @@
                                 <div class="qams-ces-gender-values">
                                     <span>
                                         <span class="qams-ces-gender-label"><i class="qams-ces-legend-dot qams-ces-male"></i>Male</span>
-                                        <span class="qams-ces-gender-count"><strong data-ces-male="{{ $demographic['key'] }}">{{ number_format($demographic['male']) }}</strong><small data-ces-male-share="{{ $demographic['key'] }}">{{ $demographic['male'] + $demographic['female'] ? number_format($demographic['male'] / ($demographic['male'] + $demographic['female']) * 100) : 0 }}%</small></span>
+                                        <span class="qams-ces-gender-count">                                        <strong data-ces-male="{{ $demographic['key'] }}">—</strong><small data-ces-male-share="{{ $demographic['key'] }}">—</small></span>
                                     </span>
                                     <span>
                                         <span class="qams-ces-gender-label"><i class="qams-ces-legend-dot qams-ces-female"></i>Female</span>
-                                        <span class="qams-ces-gender-count"><strong data-ces-female="{{ $demographic['key'] }}">{{ number_format($demographic['female']) }}</strong><small data-ces-female-share="{{ $demographic['key'] }}">{{ $demographic['male'] + $demographic['female'] ? number_format($demographic['female'] / ($demographic['male'] + $demographic['female']) * 100) : 0 }}%</small></span>
+                                        <span class="qams-ces-gender-count"><strong data-ces-female="{{ $demographic['key'] }}">—</strong><small data-ces-female-share="{{ $demographic['key'] }}">—</small></span>
                                     </span>
                                 </div>
                             </div>

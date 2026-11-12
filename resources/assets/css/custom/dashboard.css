@@ -182,6 +182,11 @@
   background-color: #20c997;
 }
 
+.qams-status-cached {
+  background-color: #8592a3;
+  box-shadow: 0 0 0 3px rgb(133 146 163 / 16%);
+}
+
 .qams-countdown-ring {
   display: grid;
   width: 1.35rem;

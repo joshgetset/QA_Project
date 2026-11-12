@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\authentications\ForgotPasswordBasic;
 use App\Http\Controllers\authentications\RegisterBasic;
 use App\Http\Controllers\cards\CardBasic;
+use App\Http\Controllers\CesAnalyticsController;
 use App\Http\Controllers\dashboard\Analytics;
 use App\Http\Controllers\extended_ui\PerfectScrollbar;
 use App\Http\Controllers\extended_ui\TextDivider;
@@ -57,6 +58,9 @@ Route::post('/logout', [GoogleAuthController::class, 'logout'])->middleware('aut
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [Analytics::class, 'index'])->name('dashboard-analytics');
     Route::get('/dashboard/systems/{system}', [Analytics::class, 'showSystem'])->name('qams.system');
+    Route::get('/dashboard/systems/ces/analytics', CesAnalyticsController::class)
+        ->middleware('throttle:60,1')
+        ->name('qams.ces.analytics');
     Route::get('/api/qams/systems', [Analytics::class, 'systems'])->name('qams.systems');
     Route::post('/settings/pillar', [PillarController::class, 'update'])->name('pillar.update');
 

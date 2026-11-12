@@ -5,125 +5,199 @@ const analyticsView = document.querySelector('[data-ces-analytics]');
 
 if (analyticsView) {
   const analytics = JSON.parse(analyticsView.querySelector('[data-ces-analytics-data]').textContent);
-  const demographics = new Map();
+  const statusElement = analyticsView.querySelector('[data-ces-analytics-status]');
   const numberFormat = new Intl.NumberFormat();
   const cardsView = analyticsView.querySelector('[data-ces-demographic-cards]');
   const overviewView = analyticsView.querySelector('[data-ces-demographic-overview]');
   const overviewTitle = analyticsView.querySelector('[data-ces-overview-title]');
+  const selectors = [...analyticsView.querySelectorAll('[data-ces-filter]')];
+  const allOptions = {
+    campus: 'All Campuses',
+    college: 'All Colleges',
+    program: 'All Programs',
+    year: 'Latest Academic Year'
+  };
   let overviewChart;
+  let requestController;
+  let enrolledStudents = 0;
 
-  analyticsView.querySelectorAll('[data-ces-demographic-chart]').forEach(element => {
-    const key = element.dataset.cesDemographicChart;
-    const male = Number(element.dataset.male);
-    const female = Number(element.dataset.female);
-    const maleSegment = element.querySelector('[data-ces-male-segment]');
-    const femaleSegment = element.querySelector('[data-ces-female-segment]');
+  const demographics = new Map(
+    analytics.demographics.map(metric => {
+      const element = analyticsView.querySelector(`[data-ces-demographic-chart="${metric.key}"]`);
 
-    element.dataset.chartLabel = element.getAttribute('aria-label');
-    demographics.set(key, {
-      element,
-      maleSegment,
-      femaleSegment,
-      male,
-      female,
-      filteredMale: male,
-      filteredFemale: female
+      element.dataset.chartLabel = element.getAttribute('aria-label');
+
+      return [
+        metric.key,
+        {
+          metric,
+          element,
+          maleSegment: element.querySelector('[data-ces-male-segment]'),
+          femaleSegment: element.querySelector('[data-ces-female-segment]'),
+          emptyMessage: analyticsView.querySelector(`[data-ces-demographic-empty="${metric.key}"]`)
+        }
+      ];
+    })
+  );
+
+  const selectedFilters = () =>
+    selectors.reduce((filters, select) => {
+      filters[select.dataset.cesFilter] = select.value;
+      return filters;
+    }, {});
+
+  const populateFilters = payload => {
+    selectors.forEach(select => {
+      const key = select.dataset.cesFilter;
+      const selectedValue = payload.selected[key] || '';
+      const options = [new Option(allOptions[key], ''), ...(payload.filters[key] || []).map(
+        option => new Option(option.label, option.value)
+      )];
+
+      select.replaceChildren(...options);
+      select.value = selectedValue;
     });
-    const total = male + female;
+  };
 
-    element.hidden = total === 0;
-    analyticsView.querySelector(`[data-ces-demographic-empty="${key}"]`).hidden = total !== 0;
-  });
+  const setStatus = (message, type) => {
+    statusElement.textContent = message;
+    statusElement.className = `alert alert-${type}`;
+    statusElement.hidden = false;
+  };
 
-  const updateAnalytics = () => {
-    const selectedFactors = [...analyticsView.querySelectorAll('[data-ces-filter]')].map(select => {
-      const selectedOption = analytics.filters[select.dataset.cesFilter].find(option => option.value === select.value);
+  const clearStatus = () => {
+    statusElement.textContent = '';
+    statusElement.hidden = true;
+  };
 
-      return selectedOption ? selectedOption.factor : 1;
-    });
-    const factor = selectedFactors.reduce((product, selectedFactor) => product * selectedFactor, 1);
-
-    analytics.summary.forEach(metric => {
-      const value = Math.round(metric.value * factor);
+  const renderSummary = metrics => {
+    metrics.forEach(metric => {
       const element = analyticsView.querySelector(`[data-ces-summary="${metric.key}"]`);
-
-      animateNumber(element, numberFormat.format(value));
+      animateNumber(element, numberFormat.format(metric.value));
     });
+    const enrolledMetric = metrics.find(metric => metric.key === 'total-enrolled-students');
+    enrolledStudents = enrolledMetric ? enrolledMetric.value : 0;
+  };
 
-    const filteredDemographics = [...demographics.entries()].map(([key, demographic]) => ({
-      key,
-      demographic,
-      male: Math.round(demographic.male * factor),
-      female: Math.round(demographic.female * factor)
-    }));
-    const totalStudents = filteredDemographics.reduce((sum, item) => sum + item.male + item.female, 0);
+  const renderDemographics = metrics => {
+    const dataByKey = new Map(metrics.map(metric => [metric.key, metric]));
 
-    filteredDemographics.forEach(({ key, demographic, male: filteredMale, female: filteredFemale }) => {
-      const { element, maleSegment, femaleSegment } = demographic;
-      const total = filteredMale + filteredFemale;
-      const maleShare = total ? (filteredMale / total) * 100 : 0;
-      const femaleShare = total ? (filteredFemale / total) * 100 : 0;
+    demographics.forEach((demographic, key) => {
+      const { element, maleSegment, femaleSegment, emptyMessage } = demographic;
+      const metric = dataByKey.get(key);
 
-      demographic.filteredMale = filteredMale;
-      demographic.filteredFemale = filteredFemale;
+      if (metric) demographic.metric = metric;
+
+      const totalElement = analyticsView.querySelector(`[data-ces-demographic-total="${key}"]`);
+      const maleElement = analyticsView.querySelector(`[data-ces-male="${key}"]`);
+      const femaleElement = analyticsView.querySelector(`[data-ces-female="${key}"]`);
+      const maleShareElement = analyticsView.querySelector(`[data-ces-male-share="${key}"]`);
+      const femaleShareElement = analyticsView.querySelector(`[data-ces-female-share="${key}"]`);
+
+      if (!metric || !metric.available) {
+        animateNumber(totalElement, 'N/A');
+        animateNumber(maleElement, '—');
+        animateNumber(femaleElement, '—');
+        maleShareElement.textContent = '—';
+        femaleShareElement.textContent = '—';
+        element.hidden = true;
+        emptyMessage.hidden = false;
+        emptyMessage.textContent = 'No mapped CES data field is available for this metric.';
+        return;
+      }
+
+      const total = Number(metric.total);
+      const male = Number(metric.male);
+      const female = Number(metric.female);
+      const genderTotal = male + female;
+      const maleShare = genderTotal ? (male / genderTotal) * 100 : 0;
+      const femaleShare = genderTotal ? (female / genderTotal) * 100 : 0;
+
+      animateNumber(totalElement, numberFormat.format(total));
+      animateNumber(maleElement, numberFormat.format(male));
+      animateNumber(femaleElement, numberFormat.format(female));
+      maleShareElement.textContent = `${numberFormat.format(maleShare)}%`;
+      femaleShareElement.textContent = `${numberFormat.format(femaleShare)}%`;
       maleSegment.style.width = `${maleShare}%`;
       femaleSegment.style.width = `${femaleShare}%`;
-      animateNumber(analyticsView.querySelector(`[data-ces-demographic-total="${key}"]`), numberFormat.format(total));
-      animateNumber(analyticsView.querySelector(`[data-ces-male="${key}"]`), numberFormat.format(filteredMale));
-      animateNumber(analyticsView.querySelector(`[data-ces-female="${key}"]`), numberFormat.format(filteredFemale));
-      analyticsView.querySelector(`[data-ces-male-share="${key}"]`).textContent = `${numberFormat.format(maleShare)}%`;
-      analyticsView.querySelector(`[data-ces-female-share="${key}"]`).textContent =
-        `${numberFormat.format(femaleShare)}%`;
-      analyticsView.querySelector(`[data-ces-demographic-empty="${key}"]`).hidden = total !== 0;
       element.hidden = total === 0;
+      emptyMessage.hidden = total !== 0;
+      emptyMessage.textContent = 'No students recorded in this group.';
       element.setAttribute(
         'aria-label',
-        `${element.dataset.chartLabel}: ${numberFormat.format(filteredMale)} male, ${numberFormat.format(filteredFemale)} female`
+        `${element.dataset.chartLabel}: ${numberFormat.format(male)} male, ${numberFormat.format(female)} female`
       );
     });
 
     animateNumber(
       overviewTitle,
-      `Male vs female counts per group — ${numberFormat.format(totalStudents)} students across special populations`
+      `Male vs female counts per group — ${numberFormat.format(enrolledStudents)} enrolled students`
     );
+
     if (overviewChart) {
-      const values = [...demographics.values()];
-      overviewChart.updateOptions(
-        {
-          series: [
-            { name: 'Male', data: values.map(demographic => demographic.filteredMale) },
-            { name: 'Female', data: values.map(demographic => demographic.filteredFemale) }
-          ],
-          xaxis: { max: getAxisMax(values) }
-        },
-        true,
-        true
-      );
+      overviewChart.updateSeries([
+        { name: 'Male', data: [...demographics.values()].map(({ metric }) => Number((dataByKey.get(metric.key) || {}).male || 0)) },
+        { name: 'Female', data: [...demographics.values()].map(({ metric }) => Number((dataByKey.get(metric.key) || {}).female || 0)) }
+      ], true);
     }
   };
 
-  const getAxisMax = demographicsList => {
-    const largestGroup = Math.max(
-      ...demographicsList.map(({ filteredMale, filteredFemale }) => filteredMale + filteredFemale),
-      1
-    );
-    const rawInterval = largestGroup / 4;
-    const magnitude = 10 ** Math.floor(Math.log10(rawInterval));
-    const normalizedInterval = rawInterval / magnitude;
-    const interval =
-      (normalizedInterval <= 1 ? 1 : normalizedInterval <= 2 ? 2 : normalizedInterval <= 5 ? 5 : 10) * magnitude;
+  const renderAnalytics = payload => {
+    populateFilters(payload);
+    renderSummary(payload.summary);
+    renderDemographics(payload.demographics);
 
-    return Math.ceil(largestGroup / (interval * 4)) * interval * 4;
+    const unavailableCampuses = payload.campuses
+      .filter(campus => campus.status !== 'available')
+      .map(campus => campus.name);
+
+    if (unavailableCampuses.length) {
+      setStatus(`Partial CES data. Unavailable campus data: ${unavailableCampuses.join(', ')}.`, 'warning');
+    } else {
+      clearStatus();
+    }
+  };
+
+  const refreshAnalytics = async () => {
+    if (requestController) requestController.abort();
+    requestController = new AbortController();
+    clearStatus();
+
+    const filters = selectedFilters();
+    const query = Object.keys(filters)
+      .filter(key => filters[key] !== '')
+      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(filters[key])}`)
+      .join('&');
+    const url = new URL(analyticsView.dataset.cesAnalyticsUrl, window.location.origin);
+    url.search = query;
+
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+        signal: requestController.signal
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.message || 'CES analytics could not be loaded.');
+      }
+
+      renderAnalytics(payload);
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+
+      setStatus('Live CES data could not be loaded. Check the CES database connection and try again.', 'danger');
+    }
   };
 
   const renderOverviewChart = () => {
     if (overviewChart) return;
 
-    const values = [...demographics.values()];
     overviewChart = new ApexCharts(analyticsView.querySelector('[data-ces-overview-chart]'), {
       chart: {
         type: 'bar',
-        height: Math.max(280, values.length * 38 + 72),
+        height: Math.max(280, demographics.size * 38 + 72),
         stacked: true,
         toolbar: { show: false },
         animations: {
@@ -135,8 +209,8 @@ if (analyticsView) {
         parentHeightOffset: 0
       },
       series: [
-        { name: 'Male', data: values.map(demographic => demographic.filteredMale) },
-        { name: 'Female', data: values.map(demographic => demographic.filteredFemale) }
+        { name: 'Male', data: [...demographics.values()].map(({ metric }) => Number(metric.male || 0)) },
+        { name: 'Female', data: [...demographics.values()].map(({ metric }) => Number(metric.female || 0)) }
       ],
       colors: ['#696cff', '#ff6f91'],
       plotOptions: {
@@ -147,15 +221,8 @@ if (analyticsView) {
       tooltip: { y: { formatter: value => `${numberFormat.format(value)} students` } },
       grid: { borderColor: '#eef0f4', strokeDashArray: 4, padding: { left: 8, right: 16 } },
       xaxis: {
-        categories: [...demographics.values()].map(({ element }) => {
-          const item = analytics.demographics.find(
-            demographic => demographic.key === element.dataset.cesDemographicChart
-          );
-
-          return item.label;
-        }),
+        categories: [...demographics.values()].map(({ metric }) => metric.label),
         min: 0,
-        max: getAxisMax(values),
         tickAmount: 4,
         labels: { formatter: value => numberFormat.format(value), style: { colors: '#7a8699' } },
         axisBorder: { show: false },
@@ -172,6 +239,10 @@ if (analyticsView) {
 
       cardsView.hidden = showChart;
       overviewView.hidden = !showChart;
+      if (!showChart && overviewChart) {
+        overviewChart.destroy();
+        overviewChart = undefined;
+      }
       analyticsView.querySelectorAll('[data-ces-view]').forEach(viewButton => {
         const isActive = viewButton === button;
 
@@ -183,9 +254,19 @@ if (analyticsView) {
     });
   });
 
-  analyticsView.querySelectorAll('[data-ces-filter]').forEach(select => {
-    select.addEventListener('change', updateAnalytics);
+  selectors.forEach(select => {
+    select.addEventListener('change', () => {
+      if (select.dataset.cesFilter === 'campus') {
+        analyticsView.querySelector('[data-ces-filter="college"]').value = '';
+        analyticsView.querySelector('[data-ces-filter="program"]').value = '';
+        analyticsView.querySelector('[data-ces-filter="year"]').value = '';
+      } else if (select.dataset.cesFilter === 'college') {
+        analyticsView.querySelector('[data-ces-filter="program"]').value = '';
+      }
+
+      refreshAnalytics();
+    });
   });
 
-  updateAnalytics();
+  refreshAnalytics();
 }

@@ -24,7 +24,7 @@
     <!-- /Search -->
     <ul class="navbar-nav flex-row align-items-center ms-auto">
         <li class="nav-item me-3 qams-pillar-selector">
-            <form method="POST" action="{{ route('pillar.update') }}" class="qams-pillar-form">
+            <form method="POST" action="{{ route('pillar.update') }}" class="qams-pillar-form" data-confirm-pillar>
                 @csrf
                 <div class="qams-pillar-pill" aria-label="Select pillar">
                     <i class="icon-base ri ri-government-line qams-pillar-icon" aria-hidden="true"></i>
@@ -34,7 +34,7 @@
                         class="form-select form-select-sm qams-pillar-select"
                         name="pillar"
                         aria-label="Select pillar"
-                        onchange="this.form.requestSubmit()"
+                        data-current-value="{{ session('pillar', 'National') }}"
                     >
                         @foreach (['National', 'International', 'Institutional'] as $pillar)
                             <option value="{{ $pillar }}" @selected(session('pillar', 'National') === $pillar)>{{ $pillar }}</option>
@@ -98,9 +98,9 @@
                 </li>
                 <li>
                     <div class="d-grid px-4 pt-2 pb-1">
-                        <form method="POST" action="{{ route('logout') }}">
+                        <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                             @csrf
-                            <button class="btn btn-danger d-flex w-100" type="submit">
+                            <button class="btn btn-danger d-flex w-100" type="submit" data-logout-button>
                                 <small class="align-middle">Logout</small>
                                 <i class="ri ri-logout-box-r-line ms-2 icon-xs"></i>
                             </button>

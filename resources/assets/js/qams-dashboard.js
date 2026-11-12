@@ -189,6 +189,8 @@ if (dashboard) {
       return;
     }
 
+    container.querySelector('.qams-empty-metrics')?.remove();
+
     metrics.forEach((metric, index) => {
       const existing = container.querySelectorAll('.qams-metric')[index];
 
@@ -210,15 +212,17 @@ if (dashboard) {
       item.append(value, label);
       container.append(item);
     });
+
+    [...container.querySelectorAll('.qams-metric')].slice(metrics.length).forEach(item => item.remove());
   };
 
   const updateSystemStatus = (card, source, sourceLabel) => {
     const status = card.querySelector('.qams-system-status');
-    const validSources = ['live', 'demo', 'unavailable'];
+    const validSources = ['live', 'cached', 'demo', 'unavailable'];
     const currentSource = validSources.includes(source) ? source : 'unavailable';
 
     card.dataset.source = currentSource;
-    status.classList.remove('qams-status-live', 'qams-status-demo', 'qams-status-unavailable');
+    status.classList.remove('qams-status-live', 'qams-status-cached', 'qams-status-demo', 'qams-status-unavailable');
     status.classList.add(`qams-status-${currentSource}`);
     status.title = sourceLabel;
     status.setAttribute('aria-label', sourceLabel);
@@ -242,8 +246,12 @@ if (dashboard) {
 
     systems.forEach(system => {
       const summaryValue = dashboard.querySelector(`[data-summary-value-for="${CSS.escape(system.key)}"]`);
+      const metrics = Array.isArray(system.metrics) ? system.metrics : [];
+      const metric = system.key === 'system-17'
+        ? metrics.find(({ label }) => /^total enrolled students \(ay \d{4}-\d{4}\)$/i.test(label.trim()))
+        : metrics[0];
 
-      if (summaryValue) animateNumber(summaryValue, system.metrics[0]?.value || '—');
+      if (summaryValue) animateNumber(summaryValue, metric?.value || '—');
     });
   };
 
@@ -297,7 +305,11 @@ if (dashboard) {
 
       if (!card) return;
 
-      const metrics = system.metrics.slice(0, 1);
+      const systemMetrics = Array.isArray(system.metrics) ? system.metrics : [];
+      const cardMetric = system.key === 'system-17'
+        ? systemMetrics.find(({ label }) => /^total enrolled students \(ay \d{4}-\d{4}\)$/i.test(label.trim()))
+        : systemMetrics[0];
+      const metrics = cardMetric ? [cardMetric] : [];
       renderMetrics(card.querySelector('[data-system-metrics]'), metrics);
       updateSystemStatus(card, system.source, system.source_label);
       renderTrend(card, metrics[0], system.source);
@@ -339,7 +351,8 @@ if (dashboard) {
       renderSystems(result.systems);
       checkedAt.textContent = `Last checked ${formattedTime(result.checked_at)}`;
     } catch (error) {
-      alert.textContent = 'Unable to refresh system data. Your last displayed values are unchanged; try again shortly.';
+      const reason = error instanceof Error ? ` ${error.message}` : '';
+      alert.textContent = `Unable to refresh system data.${reason} Your last displayed values are unchanged; try again shortly.`;
       alert.hidden = false;
       console.error('Unable to refresh QAMS system data.', error);
     } finally {
@@ -393,4 +406,7 @@ if (dashboard) {
       searchInput.blur();
     }
   });
+
+  const navigationType = performance.getEntriesByType?.('navigation')?.[0]?.type;
+  if (navigationType === 'reload') refreshSystems();
 }

@@ -97,6 +97,96 @@ Each connected system should expose a JSON `GET` endpoint returning the normaliz
 
 Configure API URLs only for trusted university systems. Failed or invalid API responses are logged and shown as unavailable; sample values are never substituted for a configured API that fails.
 
+### CES campus data API
+
+CES can publish an aggregated, API-key-protected summary from its six local MySQL databases at `GET /api/ces/enrollment-summary`. The API returns campus student-record counts and a total; it does not return student records.
+
+Configure `CES_API_KEY` and the separate `CES_DB_*` values in `.env`. Create a MySQL account for `CES_DB_USERNAME` with `SELECT` permission only on the required tables listed below; do not use the application's database administrator account. The application host must be allowed to connect to MySQL. Do not commit `.env` or send API keys/passwords in chat. Keep the API reachable only by trusted clients, use HTTPS outside local development, and rotate the key if it is exposed.
+
+The authenticated CES metrics page fetches live data from the session-protected `GET /dashboard/systems/ces/analytics` route, filtering by campus, college, program, and academic year. The browser does not receive or send the CES API key. Results are cached for 30 seconds; unavailable campuses are reported and totals are marked partial rather than silently presented as complete. **Total Enrolled Students** is calculated per campus as `COUNT(DISTINCT grades20261.StudentNo)` for non-empty student numbers. `grades20261` supplies the 2026–2027 enrollment cohort; college and program filters use `students.Course` joined to `course` and `department`. Campus totals are added together and are distinct within each campus, not globally deduplicated across campuses. Demographic counts use that same distinct grades-table cohort, joined to `students` and `students2` for profile fields. "New Freshman" and graduating-enrollee metrics continue to use finalized `registration` rows and their `StudentStatus` / `isGraduating` fields for the selected 2026 academic year. International-student, 4Ps, and disability counts use `students.nationality`, `students2.Family4Ps`, and `students.Disability` respectively. Other population cards remain visible as unavailable until their source fields and definitions are confirmed; they never display sample values.
+
+For a local MySQL server at `127.0.0.1`, use MySQL Workbench to create a dedicated read-only account and grant it access only to the analytics and summary source tables:
+
+```sql
+CREATE USER 'ces_reader'@'127.0.0.1' IDENTIFIED BY 'replace-with-a-long-random-password';
+GRANT SELECT ON enrolment_sogod.students TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sogod.students2 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sogod.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sogod.grades20261 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sogod.course TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sogod.department TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_bontoc.students TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_bontoc.students2 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_bontoc.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_bontoc.grades20261 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_bontoc.course TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_bontoc.department TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_tomasoppus.students TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_tomasoppus.students2 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_tomasoppus.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_tomasoppus.grades20261 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_tomasoppus.course TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_tomasoppus.department TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_hinunangan.students TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_hinunangan.students2 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_hinunangan.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_hinunangan.grades20261 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_hinunangan.course TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_hinunangan.department TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_maasin.students TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_maasin.students2 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_maasin.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_maasin.grades20261 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_maasin.course TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_maasin.department TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sanjuan.students TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sanjuan.students2 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sanjuan.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sanjuan.grades20261 TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sanjuan.course TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sanjuan.department TO 'ces_reader'@'127.0.0.1';
+```
+
+In the local `.env`, set `CES_DB_USERNAME=ces_reader`, `CES_DB_PASSWORD` to the password you chose, and keep `CES_DB_DATABASE=information_schema`. Generate an API key locally (for example, with `php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"`), then set the result as both `CES_API_KEY` and `QAMS_CES_API_TOKEN`. Keep these values private. After editing `.env`, run `php artisan config:clear`.
+
+To have the QAMS dashboard consume this endpoint, set `QAMS_CES_API_URL` to its reachable URL and set `QAMS_CES_API_TOKEN` to the same secret as `CES_API_KEY`. For local testing, the URL is typically `http://127.0.0.1:8000/api/ces/enrollment-summary`. The dashboard client already sends the configured token as a Bearer token and accepts the response's `summary` and `metrics` fields.
+
+When this URL points back to the same local Laravel app, the dashboard reads the CES enrollment analytics directly instead of making a self-HTTP request. The CES summary card uses distinct students in `grades20261` and does not use the API's student-record counts as enrollment totals.
+
+Use `QAMS_<REAL_SYSTEM_NAME>_API_URL` and `QAMS_<REAL_SYSTEM_NAME>_API_TOKEN` for future integrations; do not use internal numeric system IDs in environment variable names. Existing numbered API placeholders have been renamed to descriptive system names in `.env.example` and `config/qams.php`.
+
+The campus database names are allow-listed in `config/ces.php`; request parameters cannot select a database or table. Future system integrations should follow the same pattern: each system exposes a small API backed by its own databases, while QAMS calls the system API with its key rather than connecting directly to a growing set of remote databases.
+
+### Scaling integrations to multiple systems
+
+The target architecture is up to 16 system APIs, with each system API responsible for aggregating data from its own campus databases (up to six). QAMS should call the system APIs, not connect directly to as many as 96 databases. Keep each API URL and credential server-side, use a separate credential per integration, and return a consistent response such as `{ "summary": "...", "metrics": [{ "label": "...", "value": 0 }] }`. The shared executive dashboard can display those normalized metrics without a new JavaScript file for every system.
+
+`resources/assets/js/ces-analytics.js` is CES-specific: it implements CES campus, college, program, and academic-year filters and enrollment demographics. It is not automatically used by other systems. A system needing its own detailed analytics page will need a dedicated page/script or a future reusable analytics UI with a shared schema.
+
+Before connecting a second live system, generalize the CES-specific branches in `app/Services/QamsSystemData.php` (including its direct CES analytics dependency and `system-17` checks) behind a system integration boundary. Keep CES behavior intact while doing so; other systems should then use the common API, caching, and availability handling without adding more CES-specific conditionals.
+
+### CES API implementation change log
+
+- 2026-11-12: Documented the target architecture for 16 system APIs aggregating up to six campus databases each, clarified that CES analytics JavaScript is CES-specific, and noted the backend generalization needed before the second live integration. Files changed: `README.md`.
+- 2026-11-12: Updated CES demographic chart state from the latest analytics response so switching from cards to chart displays fetched male/female values instead of initial empty placeholders. Files changed: `resources/assets/js/ces-analytics.js` and `README.md`.
+- 2026-11-12: Hardened dashboard refresh rendering for systems without a `metrics` array, made trend-entry lookup tolerant of browsers without Navigation Timing entries, and clear the CES empty-state message once live metrics arrive. Files changed: `resources/assets/js/qams-dashboard.js` and `README.md`.
+- 2026-11-12: Added blue SweetAlert2 confirmation dialogs before changing the pillar or logging out, with pillar selection restored on cancellation. Files changed: `resources/assets/js/qams-confirmations.js`, `resources/views/layouts/sections/navbar/navbar-partial.blade.php`, `resources/views/layouts/sections/scripts.blade.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Fixed the pillar selector appearing over its SweetAlert confirmation by blurring the native select and allowing its popup to close before displaying the dialog; guard against overlapping confirmations. Files changed: `resources/assets/js/qams-confirmations.js` and `README.md`.
+- 2026-11-12: Verified local executive-dashboard refresh calls CES enrollment analytics directly and does not issue requests to unconfigured system APIs; included HTTP/network failure details in the refresh warning and added a dashboard-route regression test. Files changed: `resources/assets/js/qams-dashboard.js`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Switched CES total-enrollment and demographic cohort queries to distinct students in `grades20261`, using `students`/`students2` for profile fields and course joins for college/program filters. Kept new-freshman and graduating indicators on their existing finalized-registration fields; added the grade table to read-only database grants. Files changed: `app/Services/CesEnrollmentAnalytics.php` and `README.md`.
+- 2026-11-12: Changed the executive dashboard CES metric to show only finalized, distinct enrolled students for the latest available academic year; student-record counts and partial-campus totals are excluded. Added the academic-year label and tests for local direct fetching and rejecting partial results. Files changed: `app/Services/QamsSystemData.php`, `resources/assets/js/qams-dashboard.js`, `resources/views/personal/dashboard.blade.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Removed the local dashboard's self-HTTP call to the CES summary API, which could time out against the same single-worker Laravel server. The dashboard reads CES data through a local service; the API retains its aggregate student-record summary endpoint. Files changed: `app/Services/CesEnrollmentSummary.php`, `app/Http/Controllers/Api/CesEnrollmentSummaryController.php`, `app/Services/QamsSystemData.php`, `resources/assets/js/qams-dashboard.js`, `resources/views/personal/dashboard.blade.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Preserved the last successful connected-system response for one day so navigation-only executive-dashboard visits can display cached metrics without triggering API refreshes; identified cached statuses distinctly and clarified the CES empty-state message. Files changed: `app/Services/QamsSystemData.php`, `resources/assets/js/qams-dashboard.js`, `resources/assets/css/custom/dashboard.css`, `resources/views/personal/dashboard.blade.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Limited automatic executive-dashboard data refresh to full page reloads; navigating to the dashboard no longer triggers a refresh, while the Refresh button remains available. Files changed: `resources/assets/js/qams-dashboard.js`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Made the executive dashboard render from cached values before refreshing connected APIs in the background, and limited its enrolled-student summary to explicitly labeled enrollment metrics instead of the API's first metric. Files changed: `app/Services/QamsSystemData.php`, `app/Http/Controllers/dashboard/Analytics.php`, `resources/views/personal/dashboard.blade.php`, `resources/assets/js/qams-dashboard.js`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Changed executive-dashboard system API refreshes to run concurrently, reducing navigation wait when multiple integrations have expired caches while retaining the existing cache interval and per-system failure states. Files changed: `app/Services/QamsSystemData.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Avoided a redundant CES summary API request when opening the CES metrics page; its displayed metrics continue to load from the authenticated analytics route. Files changed: `app/Http/Controllers/dashboard/Analytics.php`, `app/Services/QamsSystemData.php`, and `tests/Feature/QamsDashboardTest.php`.
+- 2026-11-12: Removed the routine loading/success CES status banner; partial-data and request-error messages remain visible. Documented the enrolled-student count's source columns and aggregation scope. Files changed: `resources/assets/js/ces-analytics.js`, `resources/views/personal/system-metrics.blade.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-12: Added the `ces_sources` MySQL connection and allow-listed campus configuration; added a Bearer-key middleware and rate-limited summary route; added an API controller that returns row counts only; added feature tests; documented read-only setup and API consumption.
+- Files changed: `.env.example`, `README.md`, `app/Http/Controllers/Api/CesEnrollmentSummaryController.php`, `app/Http/Middleware/EnsureCesApiKey.php`, `bootstrap/app.php`, `config/ces.php`, `config/database.php`, `routes/api.php`, and `tests/Feature/CesEnrollmentSummaryApiTest.php`.
+- 2026-11-12: Renamed numbered QAMS API variables to real-system-name variables; added blank CES API placeholders to the local `.env` and template; updated system configuration and setup guidance. Files changed: `.env`, `.env.example`, `README.md`, and `config/qams.php`.
+- 2026-11-12: Replaced CES sample filter and card values with cached, authenticated queries across the six databases; added live campus/college/program/year filters, finalized-registration summary metrics, mapped demographic counts, and visible unavailable states for unmapped metrics. Files changed: `app/Http/Controllers/CesAnalyticsController.php`, `app/Services/CesEnrollmentAnalytics.php`, `config/qams.php`, `resources/assets/js/ces-analytics.js`, `resources/views/personal/system-metrics.blade.php`, `routes/web.php`, `tests/Feature/CesAnalyticsTest.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+
 ## Available Tasks 🧑‍💻
 
 **Building for Production:** If you want to run the project and make the build in the production mode then run the following command in the root directory, by default The project will continue to run in the development mode:

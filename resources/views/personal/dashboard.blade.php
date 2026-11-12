@@ -14,6 +14,9 @@
 @php
     $systemCollection = collect($systems);
     $enrollmentSystem = $systemCollection->firstWhere('key', 'system-17');
+    $enrollmentMetric = collect($enrollmentSystem['metrics'] ?? [])->first(
+        fn ($metric) => preg_match('/^total enrolled students \(ay \d{4}-\d{4}\)$/iD', trim($metric['label'] ?? '')) === 1
+    );
     $personnelSystem = $systemCollection->firstWhere('key', 'human-resources');
     $liveSystemCount = $systemCollection->where('source', 'live')->count();
     $demoSystemCount = $systemCollection->where('source', 'demo')->count();
@@ -57,8 +60,8 @@
             <article class="card qams-summary-card h-100">
                 <div class="card-body">
                     <span class="qams-summary-icon"><i class="icon-base ri ri-graduation-cap-line"></i></span>
-                    <span class="qams-summary-label">Enrolled students</span>
-                    <strong class="qams-summary-value" data-summary-value-for="system-17">{{ $enrollmentSystem['metrics'][0]['value'] ?? '—' }}</strong>
+                    <span class="qams-summary-label">Current school year enrolled students</span>
+                    <strong class="qams-summary-value" data-summary-value-for="system-17">{{ $enrollmentMetric['value'] ?? '—' }}</strong>
                     <span class="qams-summary-caption">{{ $enrollmentSystem['name'] ?? 'Comprehensive Enrolment System' }}</span>
                 </div>
             </article>
@@ -132,6 +135,11 @@
                 </h5>
                 <div class="row row-cols-1 row-cols-md-2 row-cols-xxl-4 g-3 qams-system-grid">
                     @foreach ($categorySystems as $system)
+                        @php
+                            $cardMetrics = $system['key'] === 'system-17'
+                                ? array_values(array_filter($system['metrics'], fn ($metric) => preg_match('/^total enrolled students \(ay \d{4}-\d{4}\)$/iD', trim($metric['label'] ?? '')) === 1))
+                                : array_slice($system['metrics'], 0, 1);
+                        @endphp
                         <div class="col qams-system-column" data-system-column data-system-order="{{ $loop->index }}">
                             <a
                                 class="qams-system-card-link"
@@ -155,13 +163,15 @@
                                             <span class="qams-system-status qams-status-{{ $system['source'] }}" title="{{ $system['source_label'] }}" aria-label="{{ $system['source_label'] }}"></span>
                                         </div>
                                         <div class="qams-metrics" data-system-metrics>
-                                            @forelse (array_slice($system['metrics'], 0, 1) as $metric)
+                                            @forelse (array_slice($cardMetrics, 0, 1) as $metric)
                                                 <div class="qams-metric">
                                                     <strong class="qams-metric-value">{{ $metric['value'] }}</strong>
                                                     <span class="qams-metric-label">{{ $metric['label'] }}</span>
                                                 </div>
                                             @empty
-                                                <p class="qams-empty-metrics mb-0">No data is currently available.</p>
+                                                <p class="qams-empty-metrics mb-0">
+                                                    {{ $system['key'] === 'system-17' ? 'No cached data yet. Use Refresh to load CES data.' : 'No data is currently available.' }}
+                                                </p>
                                             @endforelse
                                         </div>
                                         <div class="qams-system-trend" data-system-trend>
