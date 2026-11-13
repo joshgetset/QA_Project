@@ -2,21 +2,18 @@
 
 namespace App\Services;
 
-use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use PDOException;
-
 class CesEnrollmentAnalytics
 {
-    private const CURRENT_GRADE_TABLE = 'grades20261';
-
-    private const CURRENT_GRADE_YEAR = '2026';
+    private const SEMESTERS = [
+        '1' => '1st Semester',
+        '2' => '2nd Semester',
+        '9' => 'Summer',
+    ];
 
     private const SUMMARY_METRICS = [
         ['key' => 'total-enrolled-students', 'label' => 'Total Enrolled Students', 'icon' => 'ri ri-graduation-cap-line'],
         ['key' => 'graduating-enrollees', 'label' => 'Graduating Enrollees', 'icon' => 'ri ri-award-line'],
+        ['key' => 'already-graduated-students', 'label' => 'Already Graduated Students', 'icon' => 'ri ri-medal-line'],
         ['key' => 'new-freshman', 'label' => 'New Freshman', 'icon' => 'ri ri-user-add-line'],
     ];
 
@@ -30,11 +27,27 @@ class CesEnrollmentAnalytics
         ['key' => 'indigenous-people', 'label' => 'Indigenous People'],
         ['key' => 'solo-parents', 'label' => 'Solo Parents'],
         ['key' => 'persons-with-disabilities', 'label' => 'Persons with Disabilities', 'column' => 'disability'],
-        ['key' => 'first-generation-learners', 'label' => 'First Generation Learners'],
+        ['key' => 'first-generation-learners', 'label' => 'First Generation Learners', 'column' => 'first_generation'],
+        [
+            'key' => 'financial-aid-recipients',
+            'label' => 'Students Receiving Financial Aid',
+            'count_key' => 'financial_aid',
+            'icon' => 'ri ri-hand-heart-line',
+            'note' => 'Finalized registrations with a scholarship, TES, or UniFAST marker.',
+        ],
+        [
+            'key' => 'household-income',
+            'label' => 'Students with Reported Annual Income',
+            'count_key' => 'household_income',
+            'icon' => 'ri ri-money-dollar-circle-line',
+        ],
+        ['key' => 'international-students-developing-countries', 'label' => 'International Students from Developing Countries'],
     ];
 
+    public function __construct(private readonly CesAnalyticsSnapshotStore $snapshots) {}
+
     /**
-     * @param  array{campus?: string|null, college?: string|null, program?: string|null, year?: string|null}  $filters
+     * @param  array{campus?: string|null, college?: string|null, program?: string|null, year?: string|null, semester?: string|null}  $filters
      * @return array<string, mixed>
      */
     public function get(array $filters = []): array
@@ -44,66 +57,46 @@ class CesEnrollmentAnalytics
             'college' => $filters['college'] ?? null,
             'program' => $filters['program'] ?? null,
             'year' => $filters['year'] ?? null,
+            'semester' => $filters['semester'] ?? null,
         ];
-        $cacheKey = 'ces.analytics.v3.'.sha1(json_encode($filters, JSON_THROW_ON_ERROR));
 
-        return Cache::remember($cacheKey, now()->addSeconds(30), fn () => $this->load($filters));
+        return $this->buildResponse($this->snapshots->read(), $filters);
     }
 
     /**
-     * @param  array{campus: string|null, college: string|null, program: string|null, year: string|null}  $filters
+     * @param  array<string, mixed>  $snapshot
+     * @param  array{campus: string|null, college: string|null, program: string|null, year: string|null, semester: string|null}  $filters
      * @return array<string, mixed>
      */
-    private function load(array $filters): array
+    private function buildResponse(array $snapshot, array $filters): array
     {
         $allCampuses = config('ces.campuses', []);
         $campuses = $filters['campus'] === null
             ? $allCampuses
             : array_intersect_key($allCampuses, [$filters['campus'] => true]);
-        $years = [];
-        $catalog = [];
-        $unavailable = [];
+        $snapshotCampuses = $snapshot['campuses'] ?? [];
 
-        foreach ($campuses as $key => $campus) {
-            $database = $campus['database'];
-
-            try {
-                DB::connection(config('ces.database_connection'))
-                    ->table("{$database}.".self::CURRENT_GRADE_TABLE)
-                    ->limit(1)
-                    ->get(['StudentNo']);
-
-                $years[] = self::CURRENT_GRADE_YEAR;
-
-                $catalog = [
-                    ...$catalog,
-                    ...DB::connection(config('ces.database_connection'))
-                        ->table("{$database}.course as c")
-                        ->leftJoin("{$database}.department as d", 'c.Department', '=', 'd.id')
-                        ->whereNotNull('c.course_title')
-                        ->select([
-                            'c.course_title as program',
-                            'd.CollegeName as college_name',
-                            'd.DepartmentName as department_name',
-                            'd.id as department_id',
-                        ])
-                        ->distinct()
-                        ->get()
-                        ->map(fn ($row) => (array) $row)
-                        ->all(),
-                ];
-            } catch (QueryException|PDOException $exception) {
-                Log::warning('CES filter options could not be loaded for a campus.', [
-                    'campus' => $key,
-                    'exception' => $exception::class,
-                ]);
-                $unavailable[$key] = true;
+        $availableTerms = [];
+        foreach (array_keys($campuses) as $campusKey) {
+            foreach (($snapshotCampuses[$campusKey]['terms'] ?? []) as $year => $semesters) {
+                foreach (array_keys($semesters) as $semester) {
+                    $availableTerms[(string) $year][(string) $semester] = true;
+                }
+            }
+            foreach (($snapshotCampuses[$campusKey]['grade_terms'] ?? []) as $year => $semesters) {
+                foreach (array_keys($semesters) as $semester) {
+                    $availableTerms[(string) $year][(string) $semester] = true;
+                }
+            }
+            foreach (($snapshotCampuses[$campusKey]['graduate_terms'] ?? []) as $term) {
+                if (isset($term['year'], $term['semester'])) {
+                    $availableTerms[(string) $term['year']][(string) $term['semester']] = true;
+                }
             }
         }
 
-        $years = array_values(array_unique($years));
+        $years = array_map('strval', array_keys($availableTerms));
         rsort($years, SORT_NUMERIC);
-
         $selectedYear = $filters['year'];
         if ($selectedYear !== null && ! in_array($selectedYear, $years, true)) {
             $selectedYear = null;
@@ -112,10 +105,26 @@ class CesEnrollmentAnalytics
             $selectedYear = $years[0];
         }
 
+        $semesters = array_map('strval', array_keys($availableTerms[$selectedYear] ?? []));
+        sort($semesters, SORT_NUMERIC);
+        $selectedSemester = $filters['semester'];
+        if ($selectedSemester !== null && ! in_array($selectedSemester, $semesters, true)) {
+            $selectedSemester = null;
+        }
+        if ($selectedSemester === null && $semesters !== []) {
+            $selectedSemester = in_array('1', $semesters, true)
+                ? '1'
+                : $semesters[count($semesters) - 1];
+        }
+
+        $catalog = array_values(array_filter(
+            $snapshot['catalog'] ?? [],
+            fn ($item) => array_key_exists($item['campus'] ?? '', $campuses)
+        ));
         $collegeOptions = [];
         foreach ($catalog as $item) {
-            $college = $this->collegeValue($item);
-            if ($college !== null) {
+            $college = trim((string) ($item['college'] ?? ''));
+            if ($college !== '') {
                 $collegeOptions[$college] = ['value' => $college, 'label' => $college];
             }
         }
@@ -123,13 +132,9 @@ class CesEnrollmentAnalytics
 
         $programOptions = [];
         foreach ($catalog as $item) {
-            $college = $this->collegeValue($item);
-            if (
-                is_string($item['program'] ?? null)
-                && trim($item['program']) !== ''
-                && ($filters['college'] === null || $college === $filters['college'])
-            ) {
-                $program = trim($item['program']);
+            $college = trim((string) ($item['college'] ?? ''));
+            $program = trim((string) ($item['program'] ?? ''));
+            if ($program !== '' && ($filters['college'] === null || $college === $filters['college'])) {
                 $programOptions[$program] = ['value' => $program, 'label' => $program];
             }
         }
@@ -141,63 +146,143 @@ class CesEnrollmentAnalytics
             'new-freshman' => 'new_freshman',
         ];
         $summary = array_fill_keys(array_column(self::SUMMARY_METRICS, 'key'), 0);
+        $hasEnrollmentData = false;
         $demographics = [];
+        $scholarships = [];
+        $availableIncomeCampuses = array_filter(
+            $campuses,
+            fn ($campus, $key) => ($snapshotCampuses[$key]['income_available'] ?? false) === true,
+            ARRAY_FILTER_USE_BOTH
+        );
+        $incomeCampuses = $filters['campus'] === null
+            ? $availableIncomeCampuses
+            : array_intersect_key($availableIncomeCampuses, [$filters['campus'] => true]);
         foreach (self::DEMOGRAPHIC_METRICS as $metric) {
+            $isGenderBreakdown = isset($metric['column']);
+            $countKey = $metric['count_key'] ?? null;
+            $isIncomeCount = $countKey === 'household_income';
+            $available = $isGenderBreakdown
+                || $countKey === 'financial_aid'
+                || ($isIncomeCount && $incomeCampuses !== []);
             $demographics[$metric['key']] = [
                 'key' => $metric['key'],
                 'label' => $metric['label'],
-                'available' => isset($metric['column']),
-                'total' => null,
-                'male' => null,
-                'female' => null,
+                'available' => $available,
+                'display' => $isGenderBreakdown ? 'gender' : 'count',
+                'financial' => $countKey !== null,
+                'total' => $available ? 0 : null,
+                'male' => $isGenderBreakdown ? 0 : null,
+                'female' => $isGenderBreakdown ? 0 : null,
+                'note' => $isIncomeCount
+                    ? ($incomeCampuses === []
+                        ? 'Annual-income data is unavailable for this campus.'
+                        : 'Counts include stored default value 1; income data is available only in '.implode(', ', array_column($incomeCampuses, 'name')).'.')
+                    : ($metric['note'] ?? null),
             ];
         }
 
         $campusStatuses = [];
+        $graduationUnavailable = [];
         foreach ($campuses as $key => $campus) {
-            if (isset($unavailable[$key])) {
-                $campusStatuses[] = ['key' => $key, 'name' => $campus['name'], 'status' => 'unavailable'];
+            $campusSnapshot = $snapshotCampuses[$key] ?? null;
+            $hasStage = $selectedYear !== null
+                && $selectedSemester !== null
+                && isset($campusSnapshot['terms'][$selectedYear][$selectedSemester]);
+            if (! $hasStage) {
+                $graduationUnavailable[$key] = true;
+            }
+            $campusStatuses[] = [
+                'key' => $key,
+                'name' => $campus['name'],
+                'status' => $campusSnapshot['status'] ?? 'unavailable',
+                'graduation_status' => $hasStage ? 'available' : 'unavailable',
+                'income_status' => ($campusSnapshot['income_available'] ?? false) ? 'available' : 'unavailable',
+            ];
+        }
 
+        foreach ($snapshot['rows'] ?? [] as $row) {
+            if (
+                ! array_key_exists($row['campus'] ?? '', $campuses)
+                || ($row['year'] ?? null) !== $selectedYear
+                || ($row['semester'] ?? null) !== $selectedSemester
+                || ($filters['college'] !== null && ($row['college'] ?? '') !== $filters['college'])
+                || ($filters['program'] !== null && ($row['program'] ?? '') !== $filters['program'])
+            ) {
                 continue;
             }
 
-            try {
-                $counts = $this->queryCampus($campus['database'], $filters, $selectedYear);
-                foreach ($summaryAliases as $metric => $column) {
-                    $summary[$metric] += (int) ($counts[$column] ?? 0);
+            foreach ($summaryAliases as $metric => $column) {
+                $value = $row['summary'][$column] ?? null;
+                if ($value !== null) {
+                    $summary[$metric] += (int) $value;
+                    if ($metric === 'total-enrolled-students') {
+                        $hasEnrollmentData = true;
+                    }
                 }
 
-                foreach (self::DEMOGRAPHIC_METRICS as $metric) {
-                    if (! isset($metric['column'])) {
-                        continue;
+            }
+
+            foreach (self::DEMOGRAPHIC_METRICS as $metric) {
+                $countKey = $metric['count_key'] ?? null;
+                if ($countKey !== null) {
+                    $isIncome = $countKey === 'household_income';
+                    if (! $isIncome || ($snapshotCampuses[$row['campus']]['income_available'] ?? false)) {
+                        $demographics[$metric['key']]['total'] += (int) ($row['demographics'][$countKey]['total'] ?? 0);
                     }
 
-                    $prefix = $metric['column'];
-                    $demographics[$metric['key']]['total'] += (int) ($counts["{$prefix}_total"] ?? 0);
-                    $demographics[$metric['key']]['male'] += (int) ($counts["{$prefix}_male"] ?? 0);
-                    $demographics[$metric['key']]['female'] += (int) ($counts["{$prefix}_female"] ?? 0);
+                    continue;
                 }
 
-                $campusStatuses[] = ['key' => $key, 'name' => $campus['name'], 'status' => 'available'];
-            } catch (QueryException|PDOException $exception) {
-                Log::warning('CES enrollment analytics could not be loaded for a campus.', [
-                    'campus' => $key,
-                    'exception' => $exception::class,
-                ]);
-                $unavailable[$key] = true;
-                $campusStatuses[] = ['key' => $key, 'name' => $campus['name'], 'status' => 'unavailable'];
+                if (isset($metric['column'])) {
+                    $values = $row['demographics'][$metric['column']] ?? [];
+                    $demographics[$metric['key']]['total'] += (int) ($values['total'] ?? 0);
+                    $demographics[$metric['key']]['male'] += (int) ($values['male'] ?? 0);
+                    $demographics[$metric['key']]['female'] += (int) ($values['female'] ?? 0);
+                }
+            }
+
+            foreach ($row['demographics']['financial_aid']['scholarships'] ?? [] as $scholarship) {
+                $name = trim((string) ($scholarship['name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $scholarshipKey = strtolower($name);
+                $scholarships[$scholarshipKey] ??= ['name' => $name, 'total' => 0];
+                $scholarships[$scholarshipKey]['total'] += (int) ($scholarship['total'] ?? 0);
             }
         }
 
-        $summaryMetrics = array_map(
-            fn ($metric) => [...$metric, 'value' => $summary[$metric['key']]],
-            self::SUMMARY_METRICS
-        );
-        $partial = $unavailable !== [];
+        foreach ($snapshot['graduates'] ?? [] as $graduate) {
+            if (
+                ($graduate['year'] ?? null) === $selectedYear
+                && array_key_exists($graduate['campus'] ?? '', $campuses)
+                && ($filters['college'] === null || ($graduate['college'] ?? '') === $filters['college'])
+                && ($filters['program'] === null || ($graduate['program'] ?? '') === $filters['program'])
+            ) {
+                $summary['already-graduated-students'] += (int) ($graduate['already_graduated'] ?? 0);
+            }
+            if (! $hasEnrollmentData) {
+                $summary['total-enrolled-students'] = null;
+            }
+        }
+
+        foreach ($campuses as $key => $campus) {
+            if (($snapshotCampuses[$key]['status'] ?? null) !== 'available') {
+                $graduationUnavailable[$key] = true;
+            }
+        }
+
+        $scholarships = array_values($scholarships);
+        usort($scholarships, fn ($left, $right) => strnatcasecmp($left['name'], $right['name']));
 
         return [
-            'summary' => $summaryMetrics,
+            'summary' => array_map(
+                fn ($metric) => [...$metric, 'value' => $summary[$metric['key']]],
+                self::SUMMARY_METRICS
+            ),
             'demographics' => array_values($demographics),
+            'scholarships' => $scholarships,
             'filters' => [
                 'campus' => array_map(
                     fn ($key, $campus) => ['value' => $key, 'label' => $campus['name'].' Campus'],
@@ -210,127 +295,26 @@ class CesEnrollmentAnalytics
                     fn ($year) => ['value' => $year, 'label' => $year.'–'.((int) $year + 1)],
                     $years
                 ),
+                'semester' => array_map(
+                    fn ($semester) => ['value' => $semester, 'label' => self::SEMESTERS[$semester]],
+                    $semesters
+                ),
             ],
             'selected' => [
                 'campus' => $filters['campus'],
                 'college' => $filters['college'],
                 'program' => $filters['program'],
                 'year' => $selectedYear,
+                'semester' => $selectedSemester,
             ],
             'campuses' => $campusStatuses,
-            'partial' => $partial,
-            'updated_at' => now()->toIso8601String(),
+            'graduation_unavailable_campuses' => array_values(array_map(
+                fn ($key) => $campuses[$key]['name'],
+                array_keys($graduationUnavailable)
+            )),
+            'graduation_discovery_failed' => false,
+            'partial' => $graduationUnavailable !== [],
+            'updated_at' => $snapshot['synced_at'] ?? null,
         ];
-    }
-
-    /**
-     * @param  array{campus: string|null, college: string|null, program: string|null, year: string|null}  $filters
-     * @return array<string, int>
-     */
-    private function queryCampus(string $database, array $filters, ?string $year): array
-    {
-        $connection = DB::connection(config('ces.database_connection'));
-
-        $registrationQuery = $connection
-            ->table("{$database}.registration as r")
-            ->leftJoin("{$database}.students as s", 'r.StudentNo', '=', 's.StudentNo')
-            ->leftJoin("{$database}.students2 as s2", 'r.StudentNo', '=', 's2.StudentNo')
-            ->leftJoin("{$database}.course as c", 'r.Course', '=', 'c.id')
-            ->leftJoin("{$database}.department as d", 'c.Department', '=', 'd.id')
-            ->where('r.finalize', 1)
-            ->whereNotNull('r.StudentNo');
-
-        if ($year !== null) {
-            $registrationQuery->where('r.SchoolYear', $year);
-        }
-        if ($filters['college'] !== null) {
-            $registrationQuery->whereRaw($this->collegeExpression().' = ?', [$filters['college']]);
-        }
-        if ($filters['program'] !== null) {
-            $registrationQuery->where('c.course_title', $filters['program']);
-        }
-
-        $registrationCounts = (array) $registrationQuery->selectRaw(<<<'SQL'
-            COUNT(DISTINCT CASE WHEN LOWER(TRIM(COALESCE(r.StudentStatus, ''))) = 'new' THEN r.StudentNo END) AS new_freshman,
-            COUNT(DISTINCT CASE WHEN r.isGraduating = 1 THEN r.StudentNo END) AS graduating_enrollees
-            SQL)->first();
-
-        $gradeQuery = $connection
-            ->table("{$database}.".self::CURRENT_GRADE_TABLE.' as g')
-            ->leftJoin("{$database}.students as s", 'g.StudentNo', '=', 's.StudentNo')
-            ->leftJoin("{$database}.students2 as s2", 'g.StudentNo', '=', 's2.StudentNo')
-            ->leftJoin("{$database}.course as c", 's.Course', '=', 'c.id')
-            ->leftJoin("{$database}.department as d", 'c.Department', '=', 'd.id')
-            ->whereNotNull('g.StudentNo')
-            ->whereRaw("TRIM(CAST(g.StudentNo AS CHAR)) <> ''");
-
-        if ($filters['college'] !== null) {
-            $gradeQuery->whereRaw($this->collegeExpression().' = ?', [$filters['college']]);
-        }
-        if ($filters['program'] !== null) {
-            $gradeQuery->where('c.course_title', $filters['program']);
-        }
-
-        $gradeCounts = (array) $gradeQuery->selectRaw(<<<'SQL'
-            COUNT(DISTINCT g.StudentNo) AS total_enrolled_students,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s.nationality, ''))) <> ''
-                AND LOWER(TRIM(s.nationality)) NOT LIKE '%filipin%'
-                AND LOWER(TRIM(s.nationality)) <> 'philippines'
-                THEN g.StudentNo END) AS international_total,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s.nationality, ''))) <> ''
-                AND LOWER(TRIM(s.nationality)) NOT LIKE '%filipin%'
-                AND LOWER(TRIM(s.nationality)) <> 'philippines'
-                AND LOWER(TRIM(COALESCE(s.Sex, ''))) IN ('m', 'male')
-                THEN g.StudentNo END) AS international_male,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s.nationality, ''))) <> ''
-                AND LOWER(TRIM(s.nationality)) NOT LIKE '%filipin%'
-                AND LOWER(TRIM(s.nationality)) <> 'philippines'
-                AND LOWER(TRIM(COALESCE(s.Sex, ''))) IN ('f', 'female')
-                THEN g.StudentNo END) AS international_female,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s2.Family4Ps, ''))) IN ('yes', 'y', 'true', '1', '4ps')
-                THEN g.StudentNo END) AS four_ps_total,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s2.Family4Ps, ''))) IN ('yes', 'y', 'true', '1', '4ps')
-                AND LOWER(TRIM(COALESCE(s.Sex, ''))) IN ('m', 'male')
-                THEN g.StudentNo END) AS four_ps_male,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s2.Family4Ps, ''))) IN ('yes', 'y', 'true', '1', '4ps')
-                AND LOWER(TRIM(COALESCE(s.Sex, ''))) IN ('f', 'female')
-                THEN g.StudentNo END) AS four_ps_female,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s.Disability, ''))) NOT IN ('', 'no', 'none', 'n/a', 'na', '0', 'false', 'nil')
-                THEN g.StudentNo END) AS disability_total,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s.Disability, ''))) NOT IN ('', 'no', 'none', 'n/a', 'na', '0', 'false', 'nil')
-                AND LOWER(TRIM(COALESCE(s.Sex, ''))) IN ('m', 'male')
-                THEN g.StudentNo END) AS disability_male,
-            COUNT(DISTINCT CASE WHEN
-                LOWER(TRIM(COALESCE(s.Disability, ''))) NOT IN ('', 'no', 'none', 'n/a', 'na', '0', 'false', 'nil')
-                AND LOWER(TRIM(COALESCE(s.Sex, ''))) IN ('f', 'female')
-                THEN g.StudentNo END) AS disability_female
-            SQL)->first();
-
-        return [...$registrationCounts, ...$gradeCounts];
-    }
-
-    private function collegeValue(array $item): ?string
-    {
-        foreach (['college_name', 'department_name', 'department_id'] as $field) {
-            $value = trim((string) ($item[$field] ?? ''));
-            if ($value !== '') {
-                return $value;
-            }
-        }
-
-        return null;
-    }
-
-    private function collegeExpression(): string
-    {
-        return "COALESCE(NULLIF(TRIM(d.CollegeName), ''), NULLIF(TRIM(d.DepartmentName), ''), CAST(d.id AS CHAR))";
     }
 }

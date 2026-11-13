@@ -208,6 +208,9 @@ class QamsDashboardTest extends TestCase
             ->andReturn([
                 'selected' => ['year' => '2026'],
                 'partial' => true,
+                'campuses' => [
+                    ['key' => 'sogod', 'name' => 'Sogod', 'status' => 'unavailable'],
+                ],
                 'updated_at' => '2026-11-12T00:00:00+00:00',
                 'summary' => [
                     ['key' => 'total-enrolled-students', 'value' => 1000],
@@ -223,10 +226,40 @@ class QamsDashboardTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_local_ces_summary_remains_available_when_only_graduation_tables_are_missing(): void
+    {
+        config([
+            'app.url' => 'http://127.0.0.1:8000',
+            'qams.systems.system-17.endpoint' => 'http://127.0.0.1:8000/api/ces/enrollment-summary',
+        ]);
+        $analytics = \Mockery::mock(CesEnrollmentAnalytics::class);
+        $analytics->shouldReceive('get')
+            ->once()
+            ->andReturn([
+                'selected' => ['year' => '2026'],
+                'partial' => true,
+                'campuses' => [
+                    ['key' => 'sogod', 'name' => 'Sogod', 'status' => 'available', 'graduation_status' => 'unavailable'],
+                ],
+                'updated_at' => '2026-11-12T00:00:00+00:00',
+                'summary' => [
+                    ['key' => 'total-enrolled-students', 'value' => 12394],
+                ],
+            ]);
+        $this->app->instance(CesEnrollmentAnalytics::class, $analytics);
+        Http::fake();
+
+        $ces = collect(app(QamsSystemData::class)->all())->firstWhere('key', 'system-17');
+
+        $this->assertSame('live', $ces['source']);
+        $this->assertSame('12,394', $ces['metrics'][0]['value']);
+        Http::assertNothingSent();
+    }
+
     public function test_dashboard_enrollment_summary_uses_the_named_enrollment_metric(): void
     {
         config(['qams.systems.system-17.endpoint' => 'https://ces.example.test/api/summary']);
-        Cache::put('qams.system.system-17.grades20261', [
+        Cache::put('qams.system.system-17.analytics-snapshot-v1', [
             'source' => 'live',
             'source_label' => 'Live data',
             'summary' => 'CES metrics',
@@ -246,7 +279,7 @@ class QamsDashboardTest extends TestCase
     public function test_dashboard_uses_last_successful_api_data_after_the_fresh_cache_expires(): void
     {
         config(['qams.systems.system-17.endpoint' => 'https://ces.example.test/api/summary']);
-        Cache::put('qams.system.last-known-good.system-17.grades20261', [
+        Cache::put('qams.system.last-known-good.system-17.analytics-snapshot-v1', [
             'source' => 'live',
             'source_label' => 'Live data',
             'summary' => 'CES metrics',
@@ -266,7 +299,7 @@ class QamsDashboardTest extends TestCase
     public function test_dashboard_does_not_display_student_record_counts_as_current_year_enrollment(): void
     {
         config(['qams.systems.system-17.endpoint' => 'https://ces.example.test/api/summary']);
-        Cache::put('qams.system.system-17.grades20261', [
+        Cache::put('qams.system.system-17.analytics-snapshot-v1', [
             'source' => 'live',
             'source_label' => 'Live data',
             'summary' => 'CES metrics',
@@ -307,16 +340,29 @@ class QamsDashboardTest extends TestCase
             ->assertDontSee('Explore student metrics by campus, college, and program.')
             ->assertDontSee('These preview figures are illustrative and are not live CES records.')
             ->assertSee('Campus')
-            ->assertSee('College')
+            ->assertSee('Faculty')
+            ->assertSee('All Faculties')
+            ->assertDontSee('Snapshot last refreshed')
+            ->assertDontSee('data-ces-snapshot-updated', false)
             ->assertSee('Program')
             ->assertSee('Academic Year')
+            ->assertSee('Semester')
             ->assertSee('Latest Academic Year')
+            ->assertSee('Latest Semester')
             ->assertDontSee('Loading live CES data')
             ->assertSee('data-ces-analytics-url')
+            ->assertSee('col-12 col-md-6 col-xl', false)
             ->assertSee('data-ces-filter="year"', false)
+            ->assertSee('data-ces-filter="semester"', false)
             ->assertSee('Graduating Enrollees')
+            ->assertSee('Already Graduated Students')
             ->assertSee('New Freshman')
             ->assertSee('Total Enrolled Students')
+            ->assertSee('row-cols-xl-4', false)
+            ->assertSee('row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 qams-ces-enrollment-metrics" aria-label="Enrollment metrics"', false)
+            ->assertSee('row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 gy-4" data-ces-demographic-cards', false)
+            ->assertDontSee('Latest synced CES snapshot')
+            ->assertDontSee('Selected academic year, all semesters')
             ->assertSee('International Students')
             ->assertSee('4P&#039;s Beneficiaries', false)
             ->assertSee('Children of OFWs')
@@ -327,13 +373,30 @@ class QamsDashboardTest extends TestCase
             ->assertSee('Solo Parents')
             ->assertSee('Persons with Disabilities')
             ->assertSee('First Generation Learners')
+            ->assertSee('Students Receiving Financial Aid')
+            ->assertSee('Students with Reported Annual Income')
+            ->assertSee('Financial Demographics')
+            ->assertSee('class="qams-ces-financial-overview mt-4"', false)
+            ->assertSee('class="card qams-ces-financial-chart-card"', false)
+            ->assertDontSee('Student counts for the selected academic year and semester.')
+            ->assertSee('data-ces-financial-chart', false)
+            ->assertSee('data-ces-financial-legend', false)
+            ->assertDontSee('data-ces-demographic-card="financial-aid-recipients"', false)
+            ->assertDontSee('data-ces-male="household-income"', false)
+            ->assertDontSee('data-ces-female="household-income"', false)
             ->assertDontSee('Largest cohort')
             ->assertDontSee('Share of tracked students')
             ->assertDontSee('Illustrative sample data')
             ->assertSee('data-ces-view="cards"', false)
             ->assertSee('data-ces-view="chart"', false)
+            ->assertSee('qams-ces-gender-legend', false)
+            ->assertDontSee('qams-ces-gender-label', false)
             ->assertSee('data-ces-demographic-overview', false)
             ->assertSee('data-ces-demographic-chart', false)
+            ->assertSee('data-ces-demographic-note="children-of-ofws"', false)
+            ->assertDontSee('data-ces-male="children-of-ofws"', false)
+            ->assertSee('data-ces-demographic-note="international-students-developing-countries"', false)
+            ->assertDontSee('data-ces-male="international-students-developing-countries"', false)
             ->assertSee('ri ri-global-line', false)
             ->assertSee('ri ri-hand-heart-line', false)
             ->assertSee('ri ri-plane-line', false)
@@ -345,6 +408,10 @@ class QamsDashboardTest extends TestCase
         self::assertLessThan(
             strpos($response->getContent(), 'data-ces-summary="graduating-enrollees"'),
             strpos($response->getContent(), 'data-ces-summary="total-enrolled-students"')
+        );
+        self::assertLessThan(
+            strpos($response->getContent(), '<h5 class="card-title mb-3">Financial Demographics</h5>'),
+            strpos($response->getContent(), '<h5 class="mb-1">Student Demographics</h5>')
         );
     }
 

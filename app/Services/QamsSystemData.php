@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\SystemDataIntegration;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Batch;
 use Illuminate\Http\Client\ConnectionException;
@@ -18,7 +19,7 @@ class QamsSystemData
 {
     private const LAST_KNOWN_GOOD_TTL_SECONDS = 86400;
 
-    public function __construct(private readonly CesEnrollmentAnalytics $cesEnrollmentAnalytics) {}
+    public function __construct(private readonly SystemDataIntegrationResolver $integrations) {}
 
     /**
      * @return list<array{
@@ -48,21 +49,22 @@ class QamsSystemData
                 continue;
             }
 
-            $cacheKey = $this->systemCacheKey($key);
+            $integration = $this->integrations->resolve($system);
+            $cacheKey = $this->systemCacheKey($key, $integration);
             $cached = Cache::get($cacheKey);
 
-            if ($cached !== null && ($key !== 'system-17' || $this->hasCurrentSchoolYearEnrollmentMetric($cached))) {
+            if ($cached !== null && ($integration === null || $integration->acceptsCachedData($cached))) {
                 $systems[$key] = $this->get($key, $system, $cached);
 
                 continue;
             }
 
-            if ($key === 'system-17' && $this->isLocalCesSummaryEndpoint($endpoint)) {
+            if ($integration !== null && $integration->usesLocalEndpoint($endpoint)) {
                 try {
-                    $result = $this->localCesEnrollmentResult();
+                    $result = $integration->fetchLocalData();
                     if ($result['source'] === 'live') {
                         Cache::put($cacheKey, $result, now()->addSeconds(config('qams.refresh_interval', 30)));
-                        $this->storeLastKnownGood($key, $result);
+                        $this->storeLastKnownGood($key, $result, $integration);
                     }
                     $systems[$key] = $this->get($key, $system, $result);
                 } catch (QueryException|PDOException $exception) {
@@ -86,6 +88,7 @@ class QamsSystemData
                 'definition' => $system,
                 'endpoint' => $endpoint,
                 'cache_key' => $cacheKey,
+                'integration' => $integration,
             ];
         }
 
@@ -114,7 +117,7 @@ class QamsSystemData
                         'metrics' => $data['metrics'],
                     ];
                     Cache::put($pending[$key]['cache_key'], $result, now()->addSeconds(config('qams.refresh_interval', 30)));
-                    $this->storeLastKnownGood($key, $result);
+                    $this->storeLastKnownGood($key, $result, $pending[$key]['integration']);
                     $systems[$key] = $this->get($key, $pending[$key]['definition'], $result);
                 } catch (RequestException|UnexpectedValueException $exception) {
                     $this->logRequestFailure($key, $exception::class, $exception->getMessage());
@@ -168,8 +171,9 @@ class QamsSystemData
                 continue;
             }
 
-            $cached = Cache::get($this->systemCacheKey($key))
-                ?? Cache::get($this->lastKnownGoodCacheKey($key));
+            $integration = $this->integrations->resolve($system);
+            $cached = Cache::get($this->systemCacheKey($key, $integration))
+                ?? Cache::get($this->lastKnownGoodCacheKey($key, $integration));
             $data = $cached === null ? [
                 'source' => 'unavailable',
                 'source_label' => 'Not loaded',
@@ -239,102 +243,31 @@ class QamsSystemData
         ]);
     }
 
-    private function storeLastKnownGood(string $key, array $result): void
+    private function storeLastKnownGood(
+        string $key,
+        array $result,
+        ?SystemDataIntegration $integration
+    ): void
     {
         Cache::put(
-            $this->lastKnownGoodCacheKey($key),
+            $this->lastKnownGoodCacheKey($key, $integration),
             $result,
             now()->addSeconds(self::LAST_KNOWN_GOOD_TTL_SECONDS)
         );
     }
 
-    private function lastKnownGoodCacheKey(string $key): string
+    private function lastKnownGoodCacheKey(string $key, ?SystemDataIntegration $integration): string
     {
-        $version = $key === 'system-17' ? '.grades20261' : '';
+        $version = $integration?->cacheVersion();
 
-        return "qams.system.last-known-good.{$key}{$version}";
+        return "qams.system.last-known-good.{$key}".($version === null ? '' : ".{$version}");
     }
 
-    private function systemCacheKey(string $key): string
+    private function systemCacheKey(string $key, ?SystemDataIntegration $integration): string
     {
-        $version = $key === 'system-17' ? '.grades20261' : '';
+        $version = $integration?->cacheVersion();
 
-        return "qams.system.{$key}{$version}";
-    }
-
-    private function isLocalCesSummaryEndpoint(string $endpoint): bool
-    {
-        $endpointParts = parse_url($endpoint);
-        $appParts = parse_url(config('app.url'));
-
-        if (! is_array($endpointParts) || ! is_array($appParts)) {
-            return false;
-        }
-
-        $loopbackHosts = ['127.0.0.1', '::1', 'localhost'];
-        $endpointHost = trim(strtolower($endpointParts['host'] ?? ''), '[]');
-        $appHost = trim(strtolower($appParts['host'] ?? ''), '[]');
-
-        return in_array($endpointHost, $loopbackHosts, true)
-            && in_array($appHost, $loopbackHosts, true)
-            && ($endpointParts['scheme'] ?? null) === ($appParts['scheme'] ?? null)
-            && ($endpointParts['port'] ?? null) === ($appParts['port'] ?? null)
-            && ($endpointParts['path'] ?? '') === '/api/ces/enrollment-summary';
-    }
-
-    private function localCesEnrollmentResult(): array
-    {
-        $analytics = $this->cesEnrollmentAnalytics->get();
-        $year = $analytics['selected']['year'] ?? null;
-
-        if ($analytics['partial'] || ! is_string($year) || preg_match('/^\d{4}$/D', $year) !== 1) {
-            return [
-                'source' => 'unavailable',
-                'source_label' => 'Enrollment data unavailable',
-                'summary' => 'The current school-year enrollment total is unavailable because the academic year could not be fully verified across CES campuses.',
-                'updated_at' => now()->toIso8601String(),
-                'metrics' => [],
-            ];
-        }
-
-        $metric = collect($analytics['summary'] ?? [])
-            ->firstWhere('key', 'total-enrolled-students');
-
-        if (! is_array($metric) || ! is_numeric($metric['value'] ?? null)) {
-            return [
-                'source' => 'unavailable',
-                'source_label' => 'Enrollment data unavailable',
-                'summary' => 'CES did not return a valid current school-year enrollment total.',
-                'updated_at' => now()->toIso8601String(),
-                'metrics' => [],
-            ];
-        }
-
-        return [
-            'source' => 'live',
-            'source_label' => 'Live data',
-            'summary' => 'Current school-year enrollment total from the latest academic year available in CES.',
-            'updated_at' => $analytics['updated_at'] ?? now()->toIso8601String(),
-            'metrics' => [[
-                'label' => sprintf('Total Enrolled Students (AY %s-%d)', $year, (int) $year + 1),
-                'value' => number_format((int) $metric['value']),
-            ]],
-        ];
-    }
-
-    private function hasCurrentSchoolYearEnrollmentMetric(array $data): bool
-    {
-        foreach ($data['metrics'] ?? [] as $metric) {
-            if (
-                is_array($metric)
-                && is_string($metric['label'] ?? null)
-                && preg_match('/^Total Enrolled Students \(AY \d{4}-\d{4}\)$/iD', trim($metric['label'])) === 1
-            ) {
-                return true;
-            }
-        }
-
-        return false;
+        return "qams.system.{$key}".($version === null ? '' : ".{$version}");
     }
 
     private function dataFor(string $key, array $system): array
@@ -351,10 +284,11 @@ class QamsSystemData
             ];
         }
 
-        $cacheKey = $this->systemCacheKey($key);
+        $integration = $this->integrations->resolve($system);
+        $cacheKey = $this->systemCacheKey($key, $integration);
         $cached = Cache::get($cacheKey);
 
-        if ($cached !== null) {
+        if ($cached !== null && ($integration === null || $integration->acceptsCachedData($cached))) {
             return $cached;
         }
 
@@ -367,29 +301,35 @@ class QamsSystemData
         }
 
         try {
-            $request = Http::acceptJson()
-                ->connectTimeout(3)
-                ->timeout(8);
+            if ($integration !== null && $integration->usesLocalEndpoint($endpoint)) {
+                $result = $integration->fetchLocalData();
+            } else {
+                $request = Http::acceptJson()
+                    ->connectTimeout(3)
+                    ->timeout(8);
 
-            if (is_string($system['token'] ?? null) && $system['token'] !== '') {
-                $request = $request->withToken($system['token']);
+                if (is_string($system['token'] ?? null) && $system['token'] !== '') {
+                    $request = $request->withToken($system['token']);
+                }
+
+                $payload = $request->get($endpoint)->throw()->json();
+                $data = $this->normalizePayload($payload);
+                $result = [
+                    'source' => 'live',
+                    'source_label' => 'Live data',
+                    'summary' => $data['summary'] ?? 'Data received from the connected system.',
+                    'updated_at' => now()->toIso8601String(),
+                    'metrics' => $data['metrics'],
+                ];
             }
 
-            $payload = $request->get($endpoint)->throw()->json();
-            $data = $this->normalizePayload($payload);
-            $result = [
-                'source' => 'live',
-                'source_label' => 'Live data',
-                'summary' => $data['summary'] ?? 'Data received from the connected system.',
-                'updated_at' => now()->toIso8601String(),
-                'metrics' => $data['metrics'],
-            ];
-
             Cache::put($cacheKey, $result, now()->addSeconds(config('qams.refresh_interval', 30)));
-            $this->storeLastKnownGood($key, $result);
+            if ($result['source'] === 'live') {
+                $this->storeLastKnownGood($key, $result, $integration);
+            }
 
             return $result;
-        } catch (ConnectionException|RequestException|UnexpectedValueException $exception) {
+        } catch (ConnectionException|RequestException|QueryException|PDOException|UnexpectedValueException $exception) {
             Log::warning('QAMS system data could not be refreshed.', [
                 'system' => $key,
                 'exception' => $exception::class,

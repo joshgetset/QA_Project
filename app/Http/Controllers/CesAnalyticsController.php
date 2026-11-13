@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\CesAnalyticsSnapshotUnavailable;
 use App\Services\CesEnrollmentAnalytics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,8 +17,13 @@ class CesAnalyticsController extends Controller
             'college' => ['nullable', 'string', 'max:255'],
             'program' => ['nullable', 'string', 'max:255'],
             'year' => ['nullable', 'regex:/^\d{4}$/D'],
+            'semester' => ['nullable', Rule::in(['1', '2', '9'])],
         ]);
 
-        return response()->json($analytics->get($filters));
+        try {
+            return response()->json($analytics->get($filters));
+        } catch (CesAnalyticsSnapshotUnavailable $exception) {
+            return response()->json(['message' => $exception->getMessage()], 503);
+        }
     }
 }

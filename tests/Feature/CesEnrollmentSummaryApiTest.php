@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Database\Connection;
-use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\DB;
+use App\Services\Integrations\CesSystemIntegration;
+use Mockery;
 use Tests\TestCase;
 
 class CesEnrollmentSummaryApiTest extends TestCase
@@ -31,43 +30,53 @@ class CesEnrollmentSummaryApiTest extends TestCase
             ->assertJsonPath('message', 'CES API is not configured.');
     }
 
-    public function test_summary_endpoint_returns_only_aggregated_campus_counts(): void
+    public function test_summary_endpoint_returns_snapshot_enrollment_metrics(): void
     {
         config(['ces.api_key' => 'test-ces-key']);
 
-        $connection = \Mockery::mock(Connection::class);
-        DB::shouldReceive('connection')
-            ->with('ces_sources')
-            ->times(6)
-            ->andReturn($connection);
-
-        $expectedCounts = [
-            'sogod' => 1,
-            'bontoc' => 2,
-            'tomasoppus' => 3,
-            'hinunangan' => 4,
-            'maasin' => 5,
-            'sanjuan' => 6,
-        ];
-        foreach (config('ces.campuses') as $key => $campus) {
-            $query = \Mockery::mock(QueryBuilder::class);
-            $connection->shouldReceive('table')
-                ->once()
-                ->with($campus['database'].'.students')
-                ->andReturn($query);
-            $query->shouldReceive('count')
-                ->once()
-                ->andReturn($expectedCounts[$key]);
-        }
+        $integration = Mockery::mock(CesSystemIntegration::class);
+        $integration->shouldReceive('fetchLocalData')
+            ->once()
+            ->andReturn([
+                'source' => 'live',
+                'source_label' => 'Synced snapshot',
+                'summary' => 'Current school-year enrollment total from the latest synchronized CES snapshot.',
+                'updated_at' => '2026-11-13T04:00:00+00:00',
+                'metrics' => [[
+                    'label' => 'Total Enrolled Students (AY 2026-2027)',
+                    'value' => '12,394',
+                ]],
+            ]);
+        $this->app->instance(CesSystemIntegration::class, $integration);
 
         $this->withToken('test-ces-key')
             ->getJson(route('ces.api.enrollment-summary'))
             ->assertOk()
-            ->assertJsonPath('summary', 'Aggregated student-record counts from the six CES campus databases.')
-            ->assertJsonPath('campuses.0.key', 'sogod')
-            ->assertJsonPath('campuses.0.student_records', 1)
-            ->assertJsonPath('metrics.6.label', 'Total student records')
-            ->assertJsonPath('metrics.6.value', 21)
-            ->assertJsonMissingPath('campuses.0.student_names');
+            ->assertJsonPath('source_label', 'Synced snapshot')
+            ->assertJsonPath('metrics.0.label', 'Total Enrolled Students (AY 2026-2027)')
+            ->assertJsonPath('metrics.0.value', '12,394')
+            ->assertJsonMissingPath('campuses.0.student_records');
+    }
+
+    public function test_summary_endpoint_reports_unavailable_snapshot_as_service_unavailable(): void
+    {
+        config(['ces.api_key' => 'test-ces-key']);
+
+        $integration = Mockery::mock(CesSystemIntegration::class);
+        $integration->shouldReceive('fetchLocalData')
+            ->once()
+            ->andReturn([
+                'source' => 'unavailable',
+                'source_label' => 'Snapshot unavailable',
+                'summary' => 'CES analytics snapshot is missing.',
+                'updated_at' => null,
+                'metrics' => [],
+            ]);
+        $this->app->instance(CesSystemIntegration::class, $integration);
+
+        $this->withToken('test-ces-key')
+            ->getJson(route('ces.api.enrollment-summary'))
+            ->assertServiceUnavailable()
+            ->assertJsonPath('message', 'CES analytics snapshot is missing.');
     }
 }

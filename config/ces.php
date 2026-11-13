@@ -3,6 +3,8 @@
 return [
     'api_key' => env('CES_API_KEY'),
     'database_connection' => 'ces_sources',
+    'reporting_connection' => 'ces_reporting',
+    'snapshot_table' => 'ces_analytics_snapshots',
     'campuses' => [
         'sogod' => ['name' => 'Sogod', 'database' => 'enrolment_sogod'],
         'bontoc' => ['name' => 'Bontoc', 'database' => 'enrolment_bontoc'],

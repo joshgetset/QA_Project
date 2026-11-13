@@ -99,11 +99,20 @@ Configure API URLs only for trusted university systems. Failed or invalid API re
 
 ### CES campus data API
 
-CES can publish an aggregated, API-key-protected summary from its six local MySQL databases at `GET /api/ces/enrollment-summary`. The API returns campus student-record counts and a total; it does not return student records.
+CES publishes an API-key-protected, snapshot-backed enrollment summary from its six campus databases at `GET /api/ces/enrollment-summary`. It returns aggregate enrollment metrics from `qams_ces_reporting`; it does not query or return student-level records.
 
 Configure `CES_API_KEY` and the separate `CES_DB_*` values in `.env`. Create a MySQL account for `CES_DB_USERNAME` with `SELECT` permission only on the required tables listed below; do not use the application's database administrator account. The application host must be allowed to connect to MySQL. Do not commit `.env` or send API keys/passwords in chat. Keep the API reachable only by trusted clients, use HTTPS outside local development, and rotate the key if it is exposed.
 
-The authenticated CES metrics page fetches live data from the session-protected `GET /dashboard/systems/ces/analytics` route, filtering by campus, college, program, and academic year. The browser does not receive or send the CES API key. Results are cached for 30 seconds; unavailable campuses are reported and totals are marked partial rather than silently presented as complete. **Total Enrolled Students** is calculated per campus as `COUNT(DISTINCT grades20261.StudentNo)` for non-empty student numbers. `grades20261` supplies the 2026–2027 enrollment cohort; college and program filters use `students.Course` joined to `course` and `department`. Campus totals are added together and are distinct within each campus, not globally deduplicated across campuses. Demographic counts use that same distinct grades-table cohort, joined to `students` and `students2` for profile fields. "New Freshman" and graduating-enrollee metrics continue to use finalized `registration` rows and their `StudentStatus` / `isGraduating` fields for the selected 2026 academic year. International-student, 4Ps, and disability counts use `students.nationality`, `students2.Family4Ps`, and `students.Disability` respectively. Other population cards remain visible as unavailable until their source fields and definitions are confirmed; they never display sample values.
+The authenticated CES metrics page reads only the separate aggregate reporting database through the session-protected `GET /dashboard/systems/ces/analytics` route. It filters by campus, college, program, academic year, and semester. The snapshot contains grouped counts and program/scholarship labels only; it does not store student numbers, names, nationality values, income values, or raw scholarship assignments. **Total Enrolled Students** and current-cohort demographics use distinct students in the discovered `gradesYYYYS` table for the selected year and semester (`S`: `1` first semester, `2` second semester, `9` summer), with program/college from `students.Course` joined to `course` and `department`. International, 4Ps, and disability counts use `students.nationality`, `students2.Family4Ps`, and `students.Disability`; first-generation counts use `guaranteedinfo.isFirstGeneration`. "New Freshman" uses finalized `registration` rows and `StudentStatus` for the selected academic year. "Graduating Enrollees" counts distinct, non-deleted applicants in the matching `stageYYYYS` table, while "Already Graduated Students" counts distinct `listgradsub.StudentNo` records joined to `listgradmain` by `MainID`, grouped across all semesters of the selected academic year. Academic terms are discovered from existing grade, stage, and graduation-list tables. A campus without the selected grade or stage table has no enrollment or graduating-enrollee count for that term, while its other counts remain available. "Students Receiving Financial Aid" counts distinct students in finalized registrations with a scholarship value, TES marker, or UniFAST-paid marker; this is not labeled as low-income because no shared income threshold is defined. The financial bar chart also breaks down students by scholarship names by joining `registration.Scholar` to the campus `scholar.id`; common award-level, percentage, and year suffixes are removed to combine variants such as Academic Scholar-Full and Academic Scholar-Half. Each chart bar has a distinct color and a matching legend entry. "Students with Reported Annual Income" counts students with a non-null `students.anual_income`, including the stored default value of `1`; this field exists only in Hinunangan and San Juan, so the graph notes its limited coverage. International students from developing countries remain unavailable because the source mapping is unconfirmed. Program counts are not split into UG/GS because no verified level field is present in the course catalog.
+
+Configure `CES_REPORTING_DB_*` for a separate MySQL database named `qams_ces_reporting`; use a dedicated runtime account with `SELECT`, `INSERT`, and `UPDATE` access to the snapshot table, and keep source `CES_DB_*` credentials read-only. Create the reporting database and credentials in MySQL administration. The account used for the migration also needs `CREATE` privileges; it can be different from the runtime account. Then run the migration and an initial manual snapshot:
+
+```shell
+php artisan migrate --database=ces_reporting --path=database/migrations/2026_11_13_000000_create_ces_analytics_snapshots_table.php
+php artisan ces:sync-analytics-snapshot
+```
+
+Refresh manually with `php artisan ces:sync-analytics-snapshot` whenever you want newer data; no scheduler is enabled. A failed sync does not replace the previous snapshot, so the dashboard continues serving the last successful aggregate snapshot while CES is offline. The reporting database must remain available for the dashboard to read it. The API response reports the snapshot sync time as `updated_at`.
 
 For a local MySQL server at `127.0.0.1`, use MySQL Workbench to create a dedicated read-only account and grant it access only to the analytics and summary source tables:
 
@@ -112,50 +121,66 @@ CREATE USER 'ces_reader'@'127.0.0.1' IDENTIFIED BY 'replace-with-a-long-random-p
 GRANT SELECT ON enrolment_sogod.students TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sogod.students2 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sogod.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sogod.scholar TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sogod.grades20261 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sogod.course TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sogod.department TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_bontoc.students TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_bontoc.students2 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_bontoc.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_bontoc.scholar TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_bontoc.grades20261 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_bontoc.course TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_bontoc.department TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_tomasoppus.students TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_tomasoppus.students2 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_tomasoppus.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_tomasoppus.scholar TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_tomasoppus.grades20261 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_tomasoppus.course TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_tomasoppus.department TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_hinunangan.students TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_hinunangan.students2 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_hinunangan.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_hinunangan.scholar TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_hinunangan.grades20261 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_hinunangan.course TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_hinunangan.department TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_maasin.students TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_maasin.students2 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_maasin.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_maasin.scholar TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_maasin.grades20261 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_maasin.course TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_maasin.department TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sanjuan.students TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sanjuan.students2 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sanjuan.registration TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sanjuan.scholar TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sanjuan.grades20261 TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sanjuan.course TO 'ces_reader'@'127.0.0.1';
 GRANT SELECT ON enrolment_sanjuan.department TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sogod.guaranteedinfo TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_bontoc.guaranteedinfo TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_tomasoppus.guaranteedinfo TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_hinunangan.guaranteedinfo TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_maasin.guaranteedinfo TO 'ces_reader'@'127.0.0.1';
+GRANT SELECT ON enrolment_sanjuan.guaranteedinfo TO 'ces_reader'@'127.0.0.1';
 ```
+
+First-generation analytics also requires `SELECT` permission on each campus `guaranteedinfo` table. The sync command needs `SELECT` on every existing `gradesYYYY[129]` table, `stageYYYY[129]` table, and the `listgradmain`, `listgradsub`, `registration`, and `scholar` tables in each campus database; `students`, `students2`, `course`, and `department` are also used for grouping and demographics. It also needs access to `information_schema.tables` and `information_schema.columns` to discover available terms, grade tables, and income coverage. Grant access only to source tables that exist; when a new grades or stage table is added, grant the read-only account access to it.
 
 In the local `.env`, set `CES_DB_USERNAME=ces_reader`, `CES_DB_PASSWORD` to the password you chose, and keep `CES_DB_DATABASE=information_schema`. Generate an API key locally (for example, with `php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"`), then set the result as both `CES_API_KEY` and `QAMS_CES_API_TOKEN`. Keep these values private. After editing `.env`, run `php artisan config:clear`.
 
 To have the QAMS dashboard consume this endpoint, set `QAMS_CES_API_URL` to its reachable URL and set `QAMS_CES_API_TOKEN` to the same secret as `CES_API_KEY`. For local testing, the URL is typically `http://127.0.0.1:8000/api/ces/enrollment-summary`. The dashboard client already sends the configured token as a Bearer token and accepts the response's `summary` and `metrics` fields.
 
-When this URL points back to the same local Laravel app, the dashboard reads the CES enrollment analytics directly instead of making a self-HTTP request. The CES summary card uses distinct students in `grades20261` and does not use the API's student-record counts as enrollment totals.
+When this URL points back to the same local Laravel app, the dashboard reads the CES enrollment analytics directly instead of making a self-HTTP request. The CES summary card uses the distinct students in the grade table for the selected academic year and semester and does not use the API's student-record counts as enrollment totals.
 
 Use `QAMS_<REAL_SYSTEM_NAME>_API_URL` and `QAMS_<REAL_SYSTEM_NAME>_API_TOKEN` for future integrations; do not use internal numeric system IDs in environment variable names. Existing numbered API placeholders have been renamed to descriptive system names in `.env.example` and `config/qams.php`.
 
 The campus database names are allow-listed in `config/ces.php`; request parameters cannot select a database or table. Future system integrations should follow the same pattern: each system exposes a small API backed by its own databases, while QAMS calls the system API with its key rather than connecting directly to a growing set of remote databases.
+
+The CES read-only account also needs `SELECT` permission on each existing graduation application table matching `stageYYYYS` in the six campus databases. Grant access only to tables that exist; tables may be added for later years/semesters, and some campuses may not have a table for every term. The application discovers stage table names through `information_schema.tables` and queries only discovered, validated `stage` names.
 
 ### Scaling integrations to multiple systems
 
@@ -163,10 +188,15 @@ The target architecture is up to 16 system APIs, with each system API responsibl
 
 `resources/assets/js/ces-analytics.js` is CES-specific: it implements CES campus, college, program, and academic-year filters and enrollment demographics. It is not automatically used by other systems. A system needing its own detailed analytics page will need a dedicated page/script or a future reusable analytics UI with a shared schema.
 
-Before connecting a second live system, generalize the CES-specific branches in `app/Services/QamsSystemData.php` (including its direct CES analytics dependency and `system-17` checks) behind a system integration boundary. Keep CES behavior intact while doing so; other systems should then use the common API, caching, and availability handling without adding more CES-specific conditionals.
+`app/Services/QamsSystemData.php` handles the common API, normalization, caching, last-known-good values, and availability behavior. Systems that need special handling declare an `integration` key in `config/qams.php`; `app/Services/SystemDataIntegrationResolver.php` resolves it to a class implementing `app/Contracts/SystemDataIntegration.php`. The CES adapter in `app/Services/Integrations/CesSystemIntegration.php` owns the local analytics shortcut and CES-specific cache rules. API-only systems do not need an adapter. For a future system with special data access, add a separate adapter and configuration entry rather than adding system-key checks to `QamsSystemData`; keep its database access and credentials behind that system's API/service.
 
 ### CES API implementation change log
 
+- 2026-11-13: Made enrollment and demographic snapshots discover and use the matching `gradesYYYY[129]` table for each academic year/semester; added a financial-demographics bar chart below the student-demographics section and covered historical-term selection in tests.
+- 2026-11-13: Updated the authenticated CES enrollment-summary API to serve the reporting snapshot through the CES integration, returning 503 when it is unavailable; removed the legacy live `students` count service.
+- 2026-11-13: Moved CES local-summary routing and cache behavior out of `QamsSystemData` into a config-resolved system integration adapter; preserved CES cache keys and local API behavior, and added a regression test for enrollment availability when graduation tables are missing. Files changed: `app/Contracts/SystemDataIntegration.php`, `app/Services/SystemDataIntegrationResolver.php`, `app/Services/Integrations/CesSystemIntegration.php`, `app/Services/QamsSystemData.php`, `config/qams.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
+- 2026-11-13: Removed the partial-data banner from the CES metrics page and fixed academic-year/semester selections being reset when numeric table-name keys were compared with request strings. Files changed: `app/Services/CesEnrollmentAnalytics.php`, `resources/assets/js/ces-analytics.js`, and `README.md`.
+- 2026-11-13: Switched graduating-enrollee analytics to distinct applicants in the available `stageYYYYS` tables; added academic-year/semester options from discovered stage tables, handled campuses with missing stage tables without failing other metrics, and added focused service/API/UI regression tests. Files changed: `app/Services/CesEnrollmentAnalytics.php`, `app/Http/Controllers/CesAnalyticsController.php`, `resources/views/personal/system-metrics.blade.php`, `resources/assets/js/ces-analytics.js`, `tests/Feature/CesAnalyticsTest.php`, `tests/Feature/QamsDashboardTest.php`, and `README.md`.
 - 2026-11-12: Documented the target architecture for 16 system APIs aggregating up to six campus databases each, clarified that CES analytics JavaScript is CES-specific, and noted the backend generalization needed before the second live integration. Files changed: `README.md`.
 - 2026-11-12: Updated CES demographic chart state from the latest analytics response so switching from cards to chart displays fetched male/female values instead of initial empty placeholders. Files changed: `resources/assets/js/ces-analytics.js` and `README.md`.
 - 2026-11-12: Hardened dashboard refresh rendering for systems without a `metrics` array, made trend-entry lookup tolerant of browsers without Navigation Timing entries, and clear the CES empty-state message once live metrics arrive. Files changed: `resources/assets/js/qams-dashboard.js` and `README.md`.
