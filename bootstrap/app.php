@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
   ->withMiddleware(function (Middleware $middleware) {
     $middleware->alias([
       'ces.api-key' => \App\Http\Middleware\EnsureCesApiKey::class,
+      'source.api-key' => \App\Http\Middleware\EnsureSourceApiKey::class,
     ]);
   })
   ->withExceptions(function (Exceptions $exceptions) {

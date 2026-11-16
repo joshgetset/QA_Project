@@ -33,14 +33,37 @@ if (analyticsView) {
         const element = analyticsView.querySelector(`[data-ces-demographic-chart="${metric.key}"]`);
 
         element.dataset.chartLabel = element.getAttribute('aria-label');
+        const chart = new ApexCharts(element, {
+          chart: {
+            type: 'donut',
+            width: 82,
+            height: 82,
+            sparkline: { enabled: true },
+            toolbar: { show: false },
+            animations: { enabled: true, speed: 350 },
+            parentHeightOffset: 0
+          },
+          series: [0, 0],
+          labels: ['Male', 'Female'],
+          colors: ['#696cff', '#ff6f91'],
+          stroke: { width: 0 },
+          dataLabels: { enabled: false },
+          legend: { show: false },
+          plotOptions: { pie: { donut: { size: '72%' } } },
+          tooltip: {
+            enabled: true,
+            cssClass: 'qams-ces-demographic-tooltip',
+            y: { formatter: value => `${numberFormat.format(value)} students` }
+          }
+        });
+        chart.render();
 
         return [
           metric.key,
           {
             metric,
             element,
-            maleSegment: element.querySelector('[data-ces-male-segment]'),
-            femaleSegment: element.querySelector('[data-ces-female-segment]'),
+            chart,
             emptyMessage: analyticsView.querySelector(`[data-ces-demographic-empty="${metric.key}"]`)
           }
         ];
@@ -98,7 +121,7 @@ if (analyticsView) {
       });
 
     demographics.forEach((demographic, key) => {
-      const { element, maleSegment, femaleSegment, emptyMessage } = demographic;
+      const { element, chart, emptyMessage } = demographic;
       const metric = dataByKey.get(key);
 
       if (metric) demographic.metric = metric;
@@ -115,6 +138,7 @@ if (analyticsView) {
         animateNumber(femaleElement, '—');
         maleShareElement.textContent = '—';
         femaleShareElement.textContent = '—';
+        chart.updateSeries([0, 0], false);
         element.hidden = true;
         emptyMessage.hidden = false;
         emptyMessage.textContent = 'No mapped CES data field is available for this metric.';
@@ -133,8 +157,7 @@ if (analyticsView) {
       animateNumber(femaleElement, numberFormat.format(female));
       maleShareElement.textContent = `${numberFormat.format(maleShare)}%`;
       femaleShareElement.textContent = `${numberFormat.format(femaleShare)}%`;
-      maleSegment.style.width = `${maleShare}%`;
-      femaleSegment.style.width = `${femaleShare}%`;
+      chart.updateSeries([male, female], true);
       element.hidden = total === 0;
       emptyMessage.hidden = total !== 0;
       emptyMessage.textContent = 'No students recorded in this group.';
@@ -290,7 +313,7 @@ if (analyticsView) {
     } catch (error) {
       if (error.name === 'AbortError') return;
 
-      setStatus(error.message || 'The stored CES analytics snapshot could not be loaded.', 'danger');
+      setStatus(error.message || 'CES warehouse analytics could not be loaded.', 'danger');
     }
   };
 

@@ -317,17 +317,6 @@
   color: #fff;
 }
 
-.qams-filter-count {
-  border-radius: 999px;
-  padding: 0.05rem 0.35rem;
-  background: rgb(111 125 140 / 12%);
-  font-size: 0.65rem;
-}
-
-.qams-category-filter.active .qams-filter-count {
-  background: rgb(255 255 255 / 18%);
-}
-
 .qams-category-dot {
   width: 0.45rem;
   height: 0.45rem;
@@ -800,38 +789,64 @@
   font-size: 1.65rem;
 }
 
-.qams-ces-demographic-chart {
-  width: 100%;
-  height: 0.45rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background-color: #eef0ff;
+.qams-ces-demographic-card--gender .card-body {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.qams-ces-demographic-chart .progress-bar {
-  transition: width 180ms ease-in-out;
+.qams-ces-demographic-card--gender:hover {
+  z-index: 2;
 }
 
-.qams-ces-demographic-chart[hidden] {
-  display: none;
+.qams-ces-demographic-card--gender .qams-ces-demographic-tooltip {
+  z-index: 1000;
+}
+
+.qams-ces-demographic-info {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.qams-ces-demographic-card--gender .qams-ces-demographic-count {
+  margin-top: 0;
 }
 
 .qams-ces-demographic-chart-wrap {
-  display: flex;
-  min-height: 1rem;
+  display: grid;
+  width: 5.25rem;
+  min-height: 5.25rem;
+  flex: 0 0 5.25rem;
   align-items: center;
   justify-content: center;
+  place-items: center;
+  align-self: center;
+}
+
+.qams-ces-demographic-donut {
+  width: 82px;
+  height: 82px;
+}
+
+.qams-ces-demographic-donut[hidden] {
+  display: none;
 }
 
 .qams-ces-demographic-empty {
   display: grid;
-  width: 100%;
-  min-height: 3rem;
+  width: 5rem;
+  min-height: 4rem;
   place-items: center;
   border: 1px dashed #dfe3eb;
   border-radius: 0.65rem;
   color: #7a8699;
   font-size: 0.68rem;
+  text-align: center;
 }
 
 .qams-ces-demographic-note {
@@ -860,7 +875,7 @@
   flex-wrap: wrap;
   gap: 0.55rem 1rem;
   max-height: 9rem;
-  margin: 0.25rem 0 0.75rem;
+  margin: 0 0 0.75rem;
   overflow-y: auto;
 }
 
@@ -891,7 +906,7 @@
 .qams-ces-gender-values {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 0.65rem;
   color: #6f7d8c;
   font-size: 0.72rem;
 }
@@ -914,9 +929,9 @@
 .qams-ces-gender-values > span {
   display: flex;
   min-width: 0;
-  flex: 1 1 50%;
+  flex: 0 1 auto;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.15rem;
 }
 
 .qams-ces-gender-count {
@@ -927,12 +942,12 @@
 
 .qams-ces-gender-count {
   color: #202b3c;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .qams-ces-gender-count small {
   color: #7a8699;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
 }
 
 .qams-ces-gender-values strong {

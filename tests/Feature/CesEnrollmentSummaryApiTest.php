@@ -30,7 +30,7 @@ class CesEnrollmentSummaryApiTest extends TestCase
             ->assertJsonPath('message', 'CES API is not configured.');
     }
 
-    public function test_summary_endpoint_returns_snapshot_enrollment_metrics(): void
+    public function test_summary_endpoint_returns_warehouse_enrollment_metrics(): void
     {
         config(['ces.api_key' => 'test-ces-key']);
 
@@ -39,8 +39,8 @@ class CesEnrollmentSummaryApiTest extends TestCase
             ->once()
             ->andReturn([
                 'source' => 'live',
-                'source_label' => 'Synced snapshot',
-                'summary' => 'Current school-year enrollment total from the latest synchronized CES snapshot.',
+                'source_label' => 'QAMS warehouse',
+                'summary' => 'Current school-year enrollment total from the latest successful CES warehouse load.',
                 'updated_at' => '2026-11-13T04:00:00+00:00',
                 'metrics' => [[
                     'label' => 'Total Enrolled Students (AY 2026-2027)',
@@ -52,13 +52,13 @@ class CesEnrollmentSummaryApiTest extends TestCase
         $this->withToken('test-ces-key')
             ->getJson(route('ces.api.enrollment-summary'))
             ->assertOk()
-            ->assertJsonPath('source_label', 'Synced snapshot')
+            ->assertJsonPath('source_label', 'QAMS warehouse')
             ->assertJsonPath('metrics.0.label', 'Total Enrolled Students (AY 2026-2027)')
             ->assertJsonPath('metrics.0.value', '12,394')
             ->assertJsonMissingPath('campuses.0.student_records');
     }
 
-    public function test_summary_endpoint_reports_unavailable_snapshot_as_service_unavailable(): void
+    public function test_summary_endpoint_reports_unavailable_warehouse_as_service_unavailable(): void
     {
         config(['ces.api_key' => 'test-ces-key']);
 
@@ -67,8 +67,8 @@ class CesEnrollmentSummaryApiTest extends TestCase
             ->once()
             ->andReturn([
                 'source' => 'unavailable',
-                'source_label' => 'Snapshot unavailable',
-                'summary' => 'CES analytics snapshot is missing.',
+                'source_label' => 'Warehouse unavailable',
+                'summary' => 'CES warehouse has not been successfully synchronized.',
                 'updated_at' => null,
                 'metrics' => [],
             ]);
@@ -77,6 +77,6 @@ class CesEnrollmentSummaryApiTest extends TestCase
         $this->withToken('test-ces-key')
             ->getJson(route('ces.api.enrollment-summary'))
             ->assertServiceUnavailable()
-            ->assertJsonPath('message', 'CES analytics snapshot is missing.');
+            ->assertJsonPath('message', 'CES warehouse has not been successfully synchronized.');
     }
 }

@@ -259,7 +259,7 @@ class QamsDashboardTest extends TestCase
     public function test_dashboard_enrollment_summary_uses_the_named_enrollment_metric(): void
     {
         config(['qams.systems.system-17.endpoint' => 'https://ces.example.test/api/summary']);
-        Cache::put('qams.system.system-17.analytics-snapshot-v1', [
+        Cache::put('qams.system.system-17.warehouse-analytics-v1', [
             'source' => 'live',
             'source_label' => 'Live data',
             'summary' => 'CES metrics',
@@ -279,7 +279,7 @@ class QamsDashboardTest extends TestCase
     public function test_dashboard_uses_last_successful_api_data_after_the_fresh_cache_expires(): void
     {
         config(['qams.systems.system-17.endpoint' => 'https://ces.example.test/api/summary']);
-        Cache::put('qams.system.last-known-good.system-17.analytics-snapshot-v1', [
+        Cache::put('qams.system.last-known-good.system-17.warehouse-analytics-v1', [
             'source' => 'live',
             'source_label' => 'Live data',
             'summary' => 'CES metrics',
@@ -299,7 +299,7 @@ class QamsDashboardTest extends TestCase
     public function test_dashboard_does_not_display_student_record_counts_as_current_year_enrollment(): void
     {
         config(['qams.systems.system-17.endpoint' => 'https://ces.example.test/api/summary']);
-        Cache::put('qams.system.system-17.analytics-snapshot-v1', [
+        Cache::put('qams.system.system-17.warehouse-analytics-v1', [
             'source' => 'live',
             'source_label' => 'Live data',
             'summary' => 'CES metrics',
@@ -393,6 +393,8 @@ class QamsDashboardTest extends TestCase
             ->assertDontSee('qams-ces-gender-label', false)
             ->assertSee('data-ces-demographic-overview', false)
             ->assertSee('data-ces-demographic-chart', false)
+            ->assertSee('class="qams-ces-demographic-donut"', false)
+            ->assertDontSee('class="progress qams-ces-demographic-chart"', false)
             ->assertSee('data-ces-demographic-note="children-of-ofws"', false)
             ->assertDontSee('data-ces-male="children-of-ofws"', false)
             ->assertSee('data-ces-demographic-note="international-students-developing-countries"', false)
@@ -412,6 +414,10 @@ class QamsDashboardTest extends TestCase
         self::assertLessThan(
             strpos($response->getContent(), '<h5 class="card-title mb-3">Financial Demographics</h5>'),
             strpos($response->getContent(), '<h5 class="mb-1">Student Demographics</h5>')
+        );
+        self::assertLessThan(
+            strpos($response->getContent(), 'data-ces-financial-chart'),
+            strpos($response->getContent(), 'data-ces-financial-legend')
         );
     }
 

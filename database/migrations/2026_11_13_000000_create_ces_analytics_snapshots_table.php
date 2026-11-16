@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    protected $connection = 'ces_reporting';
+    protected $connection = 'qams_warehouse';
 
     public function up(): void
     {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Exceptions\CesAnalyticsSnapshotUnavailable;
+use App\Exceptions\CesWarehouseUnavailable;
 use App\Services\CesEnrollmentAnalytics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +22,7 @@ class CesAnalyticsController extends Controller
 
         try {
             return response()->json($analytics->get($filters));
-        } catch (CesAnalyticsSnapshotUnavailable $exception) {
+        } catch (CesWarehouseUnavailable $exception) {
             return response()->json(['message' => $exception->getMessage()], 503);
         }
     }

@@ -2,11 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Exceptions\CesAnalyticsSnapshotUnavailable;
+use App\Exceptions\CesWarehouseUnavailable;
 use App\Models\User;
-use App\Services\CesAnalyticsSnapshotStore;
-use App\Services\CesAnalyticsSnapshotSynchronizer;
 use App\Services\CesEnrollmentAnalytics;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
@@ -66,146 +65,175 @@ class CesAnalyticsTest extends TestCase
             ->assertUnprocessable();
     }
 
-    public function test_endpoint_reports_missing_snapshot_as_service_unavailable(): void
+    public function test_endpoint_reports_missing_warehouse_as_service_unavailable(): void
     {
         $analytics = Mockery::mock(CesEnrollmentAnalytics::class);
         $analytics->shouldReceive('get')
             ->once()
-            ->andThrow(new CesAnalyticsSnapshotUnavailable('Snapshot has not been synced.'));
+            ->andThrow(new CesWarehouseUnavailable('Warehouse has not been synced.'));
         $this->app->instance(CesEnrollmentAnalytics::class, $analytics);
 
         $this->actingAs(User::factory()->make())
             ->getJson(route('qams.ces.analytics'))
             ->assertServiceUnavailable()
-            ->assertJsonPath('message', 'Snapshot has not been synced.');
+            ->assertJsonPath('message', 'Warehouse has not been synced.');
     }
 
-    public function test_analytics_filters_and_aggregates_stored_snapshot_rows(): void
+    public function test_analytics_aggregates_enrollment_and_demographics_from_warehouse_facts(): void
     {
+        if (! extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('Warehouse analytics fixtures require the SQLite PDO driver.');
+        }
+
         config([
+            'database.connections.qams_warehouse' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+                'foreign_key_constraints' => false,
+            ],
+            'ces.warehouse_connection' => 'qams_warehouse',
             'ces.campuses' => [
                 'sogod' => ['name' => 'Sogod', 'database' => 'enrolment_sogod'],
                 'maasin' => ['name' => 'Maasin', 'database' => 'enrolment_maasin'],
             ],
         ]);
-        $snapshot = [
-            'synced_at' => '2026-11-13T04:00:00+00:00',
-            'campuses' => [
-                'sogod' => [
-                    'name' => 'Sogod',
-                    'status' => 'available',
-                    'terms' => ['2026' => ['1' => true]],
-                    'grade_terms' => ['2025' => ['2' => true], '2026' => ['1' => true, '2' => true, '9' => true]],
-                    'graduate_terms' => [
-                        ['year' => '2025', 'semester' => '2'],
-                        ['year' => '2026', 'semester' => '2'],
-                    ],
-                    'income_available' => true,
-                ],
-                'maasin' => [
-                    'name' => 'Maasin',
-                    'status' => 'available',
-                    'terms' => [],
-                    'grade_terms' => [],
-                    'graduate_terms' => [],
-                    'income_available' => false,
-                ],
-            ],
-            'graduates' => [
-                [
-                    'campus' => 'sogod',
-                    'college' => 'Education',
-                    'program' => 'Bachelor of Education',
-                    'year' => '2026',
-                    'already_graduated' => 7,
-                ],
-                [
-                    'campus' => 'maasin',
-                    'college' => 'Education',
-                    'program' => 'Bachelor of Education',
-                    'year' => '2026',
-                    'already_graduated' => 3,
-                ],
-            ],
-            'catalog' => [
-                ['campus' => 'sogod', 'college' => 'Education', 'program' => 'Bachelor of Education'],
-                ['campus' => 'sogod', 'college' => 'Education', 'program' => 'Bachelor of Arts'],
-            ],
-            'rows' => [
-                [
-                    'campus' => 'sogod',
-                    'college' => 'Education',
-                    'program' => 'Bachelor of Education',
-                    'year' => '2026',
-                    'semester' => '1',
-                    'summary' => [
-                        'total_enrolled_students' => 12,
-                        'graduating_enrollees' => 2,
-                        'new_freshman' => 4,
-                    ],
-                    'demographics' => [
-                        'international' => ['total' => 3, 'male' => 1, 'female' => 2],
-                        'four_ps' => ['total' => 5, 'male' => 2, 'female' => 3],
-                        'disability' => ['total' => 1, 'male' => 0, 'female' => 1],
-                        'first_generation' => ['total' => 6, 'male' => 3, 'female' => 3],
-                        'financial_aid' => [
-                            'total' => 4,
-                            'scholarships' => [
-                                ['name' => 'Academic Scholar', 'total' => 3],
-                                ['name' => 'academic scholar', 'total' => 1],
-                                ['name' => 'CHED', 'total' => 2],
-                            ],
-                        ],
-                        'household_income' => ['total' => 5],
-                    ],
-                ],
-                [
-                    'campus' => 'sogod',
-                    'college' => 'Education',
-                    'program' => 'Bachelor of Arts',
-                    'year' => '2026',
-                    'semester' => '1',
-                    'summary' => [
-                        'total_enrolled_students' => 8,
-                        'graduating_enrollees' => 1,
-                        'new_freshman' => 2,
-                    ],
-                    'demographics' => [
-                        'international' => ['total' => 0, 'male' => 0, 'female' => 0],
-                        'four_ps' => ['total' => 0, 'male' => 0, 'female' => 0],
-                        'disability' => ['total' => 0, 'male' => 0, 'female' => 0],
-                        'first_generation' => ['total' => 3, 'male' => 1, 'female' => 2],
-                        'financial_aid' => ['total' => 0],
-                        'household_income' => ['total' => 0],
-                    ],
-                ],
-                [
-                    'campus' => 'maasin',
-                    'college' => 'Education',
-                    'program' => 'Bachelor of Education',
-                    'year' => '2026',
-                    'semester' => '1',
-                    'summary' => [
-                        'total_enrolled_students' => 10,
-                        'graduating_enrollees' => null,
-                        'new_freshman' => 3,
-                    ],
-                    'demographics' => [
-                        'international' => ['total' => 1, 'male' => 0, 'female' => 1],
-                        'four_ps' => ['total' => 2, 'male' => 1, 'female' => 1],
-                        'disability' => ['total' => 1, 'male' => 1, 'female' => 0],
-                        'first_generation' => ['total' => 4, 'male' => 2, 'female' => 2],
-                        'financial_aid' => ['total' => 8],
-                        'household_income' => ['total' => 9],
-                    ],
-                ],
-            ],
-        ];
-        $store = Mockery::mock(CesAnalyticsSnapshotStore::class);
-        $store->shouldReceive('read')->times(3)->andReturn($snapshot);
-        $analytics = new CesEnrollmentAnalytics($store);
+        DB::purge('qams_warehouse');
+        $schema = Schema::connection('qams_warehouse');
 
-        $payload = $analytics->get([
+        $schema->create('ces_warehouse_sync_runs', function (Blueprint $table) {
+            $table->id();
+            $table->string('status');
+            $table->timestamp('completed_at')->nullable();
+        });
+        $schema->create('ces_warehouse_campus_syncs', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('run_id');
+            $table->unsignedBigInteger('campus_id');
+            $table->string('status');
+        });
+        $schema->create('dim_campus', function (Blueprint $table) {
+            $table->id();
+            $table->string('campus_code');
+            $table->string('campus_name');
+            $table->string('source_database');
+            $table->boolean('income_available')->default(false);
+        });
+        $schema->create('dim_academic_period', function (Blueprint $table) {
+            $table->id();
+            $table->string('academic_year');
+            $table->string('semester');
+        });
+        $schema->create('ces_campus_academic_periods', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('campus_id');
+            $table->unsignedBigInteger('academic_period_id');
+            $table->boolean('has_grade_table');
+            $table->boolean('has_stage_table');
+            $table->boolean('has_graduation_period');
+        });
+        $schema->create('dim_ces_program', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('campus_id');
+            $table->string('college_name')->nullable();
+            $table->string('course_title')->nullable();
+        });
+        $schema->create('dim_ces_student', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('campus_id');
+            $table->string('sex')->nullable();
+            $table->string('nationality')->nullable();
+            $table->string('disability')->nullable();
+            $table->boolean('is_four_ps_beneficiary');
+            $table->boolean('is_first_generation');
+            $table->decimal('annual_income', 14, 2)->nullable();
+        });
+        $schema->create('dim_ces_scholarship', function (Blueprint $table) {
+            $table->id();
+            $table->string('canonical_name')->nullable();
+        });
+        $schema->create('fact_ces_enrollment', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('campus_id');
+            $table->unsignedBigInteger('academic_period_id');
+            $table->unsignedBigInteger('student_id');
+            $table->unsignedBigInteger('program_id')->nullable();
+        });
+        $schema->create('fact_ces_registration', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('campus_id');
+            $table->unsignedBigInteger('academic_period_id')->nullable();
+            $table->unsignedBigInteger('student_id');
+            $table->unsignedBigInteger('program_id')->nullable();
+            $table->unsignedBigInteger('scholarship_id')->nullable();
+            $table->string('source_school_year')->nullable();
+            $table->string('source_student_status')->nullable();
+            $table->string('source_scholarship_id')->nullable();
+            $table->boolean('is_finalized');
+            $table->string('tes_value')->nullable();
+            $table->string('unifast_paid_value')->nullable();
+        });
+        $schema->create('fact_ces_graduation', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('campus_id');
+            $table->unsignedBigInteger('academic_period_id')->nullable();
+            $table->unsignedBigInteger('student_id');
+            $table->unsignedBigInteger('program_id')->nullable();
+            $table->boolean('is_graduation_applicant');
+        });
+
+        $warehouse = DB::connection('qams_warehouse');
+        $warehouse->table('ces_warehouse_sync_runs')->insert([
+            'id' => 1,
+            'status' => 'succeeded',
+            'completed_at' => '2026-11-16 00:00:00',
+        ]);
+        $warehouse->table('dim_campus')->insert([
+            ['id' => 1, 'campus_code' => 'sogod', 'campus_name' => 'Sogod', 'source_database' => 'enrolment_sogod', 'income_available' => true],
+            ['id' => 2, 'campus_code' => 'maasin', 'campus_name' => 'Maasin', 'source_database' => 'enrolment_maasin', 'income_available' => false],
+        ]);
+        $warehouse->table('ces_warehouse_campus_syncs')->insert([
+            ['run_id' => 1, 'campus_id' => 1, 'status' => 'succeeded'],
+            ['run_id' => 1, 'campus_id' => 2, 'status' => 'succeeded'],
+        ]);
+        $warehouse->table('dim_academic_period')->insert([
+            ['id' => 10, 'academic_year' => '2026', 'semester' => '1'],
+            ['id' => 11, 'academic_year' => '2026', 'semester' => '2'],
+            ['id' => 12, 'academic_year' => '2025', 'semester' => '2'],
+        ]);
+        $warehouse->table('ces_campus_academic_periods')->insert([
+            ['campus_id' => 1, 'academic_period_id' => 10, 'has_grade_table' => true, 'has_stage_table' => true, 'has_graduation_period' => true],
+            ['campus_id' => 1, 'academic_period_id' => 12, 'has_grade_table' => true, 'has_stage_table' => false, 'has_graduation_period' => true],
+            ['campus_id' => 2, 'academic_period_id' => 10, 'has_grade_table' => true, 'has_stage_table' => false, 'has_graduation_period' => false],
+        ]);
+        $warehouse->table('dim_ces_program')->insert([
+            ['id' => 1, 'campus_id' => 1, 'college_name' => 'Education', 'course_title' => 'Bachelor of Education'],
+            ['id' => 2, 'campus_id' => 2, 'college_name' => 'Education', 'course_title' => 'Bachelor of Education'],
+        ]);
+        $warehouse->table('dim_ces_student')->insert([
+            ['id' => 1, 'campus_id' => 1, 'sex' => 'F', 'nationality' => 'Korean', 'disability' => '', 'is_four_ps_beneficiary' => true, 'is_first_generation' => true, 'annual_income' => 1],
+            ['id' => 2, 'campus_id' => 1, 'sex' => 'Male', 'nationality' => 'Filipino', 'disability' => 'Yes', 'is_four_ps_beneficiary' => false, 'is_first_generation' => false, 'annual_income' => null],
+            ['id' => 3, 'campus_id' => 2, 'sex' => 'F', 'nationality' => 'Philippines', 'disability' => '', 'is_four_ps_beneficiary' => false, 'is_first_generation' => false, 'annual_income' => null],
+        ]);
+        $warehouse->table('dim_ces_scholarship')->insert([
+            ['id' => 101, 'canonical_name' => 'CHEDMerit'],
+            ['id' => 102, 'canonical_name' => 'TES'],
+        ]);
+        $warehouse->table('fact_ces_enrollment')->insert([
+            ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 1, 'program_id' => 1],
+            ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 2, 'program_id' => 1],
+            ['campus_id' => 2, 'academic_period_id' => 10, 'student_id' => 3, 'program_id' => 2],
+        ]);
+        $warehouse->table('fact_ces_registration')->insert([
+            ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 1, 'program_id' => 1, 'scholarship_id' => 101, 'source_school_year' => '2026', 'source_student_status' => 'New', 'source_scholarship_id' => 'SCH-1', 'is_finalized' => true, 'tes_value' => '0', 'unifast_paid_value' => '0'],
+            ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 2, 'program_id' => 1, 'scholarship_id' => 102, 'source_school_year' => '2026', 'source_student_status' => 'Continuing', 'source_scholarship_id' => 'SCH-2', 'is_finalized' => true, 'tes_value' => '0', 'unifast_paid_value' => '0'],
+        ]);
+        $warehouse->table('fact_ces_graduation')->insert([
+            ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 1, 'program_id' => 1, 'is_graduation_applicant' => true],
+            ['campus_id' => 1, 'academic_period_id' => 11, 'student_id' => 1, 'program_id' => 1, 'is_graduation_applicant' => false],
+        ]);
+
+        $payload = (new CesEnrollmentAnalytics)->get([
             'campus' => 'sogod',
             'college' => 'Education',
             'program' => 'Bachelor of Education',
@@ -214,149 +242,21 @@ class CesAnalyticsTest extends TestCase
         ]);
         $summary = collect($payload['summary'])->keyBy('key');
         $demographics = collect($payload['demographics'])->keyBy('key');
+        $scholarships = collect($payload['scholarships'])->keyBy('name');
 
-        $this->assertSame(12, $summary['total-enrolled-students']['value']);
-        $this->assertSame(2, $summary['graduating-enrollees']['value']);
-        $this->assertSame(7, $summary['already-graduated-students']['value']);
-        $this->assertSame(4, $summary['new-freshman']['value']);
-        $this->assertSame(6, $demographics['first-generation-learners']['total']);
-        $this->assertTrue($demographics['first-generation-learners']['available']);
-        $this->assertSame(4, $demographics['financial-aid-recipients']['total']);
-        $this->assertSame('count', $demographics['financial-aid-recipients']['display']);
-        $this->assertSame([
-            ['name' => 'Academic Scholar', 'total' => 4],
-            ['name' => 'CHED', 'total' => 2],
-        ], $payload['scholarships']);
-        $this->assertSame(5, $demographics['household-income']['total']);
-        $this->assertSame('count', $demographics['household-income']['display']);
-        $this->assertTrue($demographics['household-income']['available']);
-        $this->assertStringContainsString('Sogod', $demographics['household-income']['note']);
+        $this->assertSame(2, $summary['total-enrolled-students']['value']);
+        $this->assertSame(1, $summary['graduating-enrollees']['value']);
+        $this->assertSame(1, $summary['already-graduated-students']['value']);
+        $this->assertSame(1, $summary['new-freshman']['value']);
+        $this->assertSame(1, $demographics['international-students']['total']);
+        $this->assertSame(1, $demographics['4ps-beneficiaries']['female']);
+        $this->assertSame(1, $demographics['persons-with-disabilities']['male']);
+        $this->assertSame(1, $demographics['first-generation-learners']['female']);
+        $this->assertSame(2, $demographics['financial-aid-recipients']['total']);
+        $this->assertSame(1, $demographics['household-income']['total']);
+        $this->assertSame(1, $scholarships['CHEDMerit']['total']);
+        $this->assertSame(1, $scholarships['TES']['total']);
+        $this->assertFalse($payload['partial']);
         $this->assertSame('2026', $payload['selected']['year']);
-        $this->assertSame('1', $payload['selected']['semester']);
-        $this->assertContains(['value' => '2025', 'label' => '2025–2026'], $payload['filters']['year']);
-
-        $secondSemesterPayload = $analytics->get([
-            'campus' => 'sogod',
-            'college' => 'Education',
-            'program' => 'Bachelor of Education',
-            'year' => '2026',
-            'semester' => '2',
-        ]);
-        $secondSemesterSummary = collect($secondSemesterPayload['summary'])->keyBy('key');
-        $this->assertSame(7, $secondSemesterSummary['already-graduated-students']['value']);
-        $this->assertNull($secondSemesterSummary['total-enrolled-students']['value']);
-
-        $defaultPayload = $analytics->get();
-        $this->assertSame('2026', $defaultPayload['selected']['year']);
-        $this->assertSame('1', $defaultPayload['selected']['semester']);
-    }
-
-    public function test_snapshot_sync_persists_aggregates_without_student_identifiers(): void
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('The CES snapshot fixture requires the SQLite PDO driver.');
-        }
-
-        config([
-            'database.connections.ces_sources' => [
-                'driver' => 'sqlite',
-                'database' => ':memory:',
-                'prefix' => '',
-                'foreign_key_constraints' => false,
-            ],
-            'database.connections.ces_reporting' => [
-                'driver' => 'sqlite',
-                'database' => ':memory:',
-                'prefix' => '',
-                'foreign_key_constraints' => false,
-            ],
-            'ces.campuses' => [
-                'sogod' => ['name' => 'Sogod', 'database' => 'enrolment_sogod'],
-            ],
-        ]);
-        DB::purge('ces_sources');
-        DB::purge('ces_reporting');
-        $connection = DB::connection('ces_sources');
-        $connection->statement("ATTACH DATABASE ':memory:' AS information_schema");
-        $connection->statement('CREATE TABLE information_schema.tables (table_schema TEXT, table_name TEXT)');
-        $connection->statement('CREATE TABLE information_schema.columns (table_schema TEXT, table_name TEXT, column_name TEXT)');
-        $connection->statement("ATTACH DATABASE ':memory:' AS enrolment_sogod");
-        $connection->statement('CREATE TABLE enrolment_sogod.students (StudentNo TEXT, Course INTEGER, nationality TEXT, Sex TEXT, Disability TEXT, anual_income INTEGER)');
-        $connection->statement('CREATE TABLE enrolment_sogod.students2 (StudentNo TEXT, Family4Ps TEXT)');
-        $connection->statement('CREATE TABLE enrolment_sogod.guaranteedinfo (StudentNo TEXT, isFirstGeneration INTEGER, deleted_at TEXT)');
-        $connection->statement('CREATE TABLE enrolment_sogod.course (id INTEGER, course_title TEXT, Department INTEGER)');
-        $connection->statement('CREATE TABLE enrolment_sogod.department (id INTEGER, CollegeName TEXT, DepartmentName TEXT)');
-        $connection->statement('CREATE TABLE enrolment_sogod.registration (StudentNo TEXT, Course INTEGER, finalize INTEGER, SchoolYear TEXT, Semester INTEGER, StudentStatus TEXT, Scholar TEXT, TES INTEGER, isUnifastPaid INTEGER)');
-        $connection->statement('CREATE TABLE enrolment_sogod.scholar (id TEXT, scholar_name TEXT, amount TEXT, typ TEXT)');
-        $connection->statement('CREATE TABLE enrolment_sogod.grades20261 (StudentNo TEXT)');
-        $connection->statement('CREATE TABLE enrolment_sogod.grades20252 (StudentNo TEXT)');
-        $connection->statement('CREATE TABLE enrolment_sogod.stage20261 (StudentNo TEXT, deleted_at TEXT)');
-        $connection->statement('CREATE TABLE enrolment_sogod.listgradmain (id INTEGER, SchoolYear INTEGER, Semester INTEGER)');
-        $connection->statement('CREATE TABLE enrolment_sogod.listgradsub (id INTEGER, StudentNo TEXT, MainID INTEGER)');
-        $connection->statement("INSERT INTO enrolment_sogod.students VALUES ('PRIVATE-STUDENT-ID', 1, 'Filipino', 'F', '', 1)");
-        $connection->statement("INSERT INTO enrolment_sogod.students2 VALUES ('PRIVATE-STUDENT-ID', 'No')");
-        $connection->statement("INSERT INTO enrolment_sogod.guaranteedinfo VALUES ('PRIVATE-STUDENT-ID', 1, NULL)");
-        $connection->statement("INSERT INTO enrolment_sogod.course VALUES (1, 'Bachelor of Education', 1)");
-        $connection->statement("INSERT INTO enrolment_sogod.department VALUES (1, 'Education', 'Education Department')");
-        $connection->statement("INSERT INTO enrolment_sogod.scholar VALUES ('SCHOLAR-1', 'Academic Scholar-Full', '100', '1')");
-        $connection->statement("INSERT INTO enrolment_sogod.scholar VALUES ('SCHOLAR-2', 'Academic Scholar-Half', '50', '1')");
-        $connection->statement("INSERT INTO enrolment_sogod.registration VALUES ('PRIVATE-STUDENT-ID', 1, 1, '2026', 1, 'New', 'SCHOLAR-1', 0, 0)");
-        $connection->statement("INSERT INTO enrolment_sogod.registration VALUES ('PRIVATE-SECOND-STUDENT-ID', 1, 1, '2026', 1, 'Continuing', 'SCHOLAR-2', 0, 0)");
-        $connection->statement("INSERT INTO enrolment_sogod.grades20261 VALUES ('PRIVATE-STUDENT-ID')");
-        $connection->statement("INSERT INTO enrolment_sogod.grades20252 VALUES ('PRIVATE-STUDENT-ID')");
-        $connection->statement("INSERT INTO enrolment_sogod.grades20252 VALUES ('PRIVATE-SECOND-STUDENT-ID')");
-        $connection->statement("INSERT INTO enrolment_sogod.stage20261 VALUES ('PRIVATE-STUDENT-ID', NULL)");
-        $connection->statement('INSERT INTO enrolment_sogod.listgradmain VALUES (1, 2026, 1)');
-        $connection->statement("INSERT INTO enrolment_sogod.listgradsub VALUES (1, 'PRIVATE-STUDENT-ID', 1)");
-        $connection->table('information_schema.tables')->insert([
-            ['table_schema' => 'enrolment_sogod', 'table_name' => 'stage20261'],
-            ['table_schema' => 'enrolment_sogod', 'table_name' => 'grades20261'],
-            ['table_schema' => 'enrolment_sogod', 'table_name' => 'grades20252'],
-        ]);
-        $connection->table('information_schema.columns')->insert([
-            'table_schema' => 'enrolment_sogod',
-            'table_name' => 'students',
-            'column_name' => 'anual_income',
-        ]);
-        Schema::connection('ces_reporting')->create('ces_analytics_snapshots', function ($table) {
-            $table->string('snapshot_key', 40)->primary();
-            $table->longText('payload');
-            $table->timestamp('synced_at');
-        });
-
-        $store = new CesAnalyticsSnapshotStore;
-        (new CesAnalyticsSnapshotSynchronizer($store))->sync();
-        $snapshot = $store->read();
-        $encoded = json_encode($snapshot, JSON_THROW_ON_ERROR);
-
-        $this->assertStringNotContainsString('PRIVATE-STUDENT-ID', $encoded);
-        $this->assertStringNotContainsString('PRIVATE-SECOND-STUDENT-ID', $encoded);
-        $this->assertCount(1, $snapshot['rows']);
-        $this->assertSame(['1' => true], $snapshot['campuses']['sogod']['terms']['2026']);
-        $this->assertSame([['year' => '2026', 'semester' => '1']], $snapshot['campuses']['sogod']['graduate_terms']);
-        $this->assertTrue($snapshot['campuses']['sogod']['income_available']);
-        $this->assertSame(1, $snapshot['rows'][0]['summary']['total_enrolled_students']);
-        $this->assertSame(1, $snapshot['rows'][0]['demographics']['first_generation']['total']);
-        $this->assertSame(2, $snapshot['rows'][0]['demographics']['financial_aid']['total']);
-        $this->assertSame([
-            ['name' => 'Academic Scholar', 'total' => 2],
-        ], $snapshot['rows'][0]['demographics']['financial_aid']['scholarships']);
-        $this->assertSame(1, $snapshot['rows'][0]['demographics']['household_income']['total']);
-        $this->assertSame(1, $snapshot['graduates'][0]['already_graduated']);
-
-        config(['ces.database_connection' => 'unavailable_live_database']);
-        $payload = (new CesEnrollmentAnalytics($store))->get();
-        $this->assertSame('2026', $payload['selected']['year']);
-        $this->assertSame('1', $payload['selected']['semester']);
-        $this->assertSame(1, collect($payload['summary'])->firstWhere('key', 'total-enrolled-students')['value']);
-        $this->assertSame(1, collect($payload['summary'])->firstWhere('key', 'already-graduated-students')['value']);
-
-        $historicalPayload = (new CesEnrollmentAnalytics($store))->get([
-            'year' => '2025',
-            'semester' => '2',
-        ]);
-        $this->assertSame('2025', $historicalPayload['selected']['year']);
-        $this->assertSame('2', $historicalPayload['selected']['semester']);
-        $this->assertSame(2, collect($historicalPayload['summary'])->firstWhere('key', 'total-enrolled-students')['value']);
     }
 }

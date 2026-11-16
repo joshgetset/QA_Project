@@ -39,7 +39,7 @@ document.querySelectorAll('[data-confirm-pillar]').forEach(form => {
         title: 'Change pillar?',
         text: `Switch to the ${nextValue} pillar?`,
         confirmButtonText: 'Change pillar',
-        cancelButtonText: 'Stay here'
+        cancelButtonText: 'Cancel'
       });
     } finally {
       confirmationOpen = false;

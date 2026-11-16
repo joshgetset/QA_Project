@@ -140,7 +140,6 @@ if (dashboard) {
     const chart = trendCharts.get(chartElement);
 
     if (chart) {
-      chart.updateOptions({ colors: [color], fill: { colors: [color] } }, false, false);
       chart.updateSeries([{ data: chartData }], false);
       return;
     }

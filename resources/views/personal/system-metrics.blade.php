@@ -88,46 +88,58 @@
             <section class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 gy-4" data-ces-demographic-cards aria-label="Student demographics">
                 @foreach ($cesDemographics->reject(fn ($demographic) => $demographic['financial'] ?? false) as $demographic)
                     <div class="col" data-ces-demographic-card="{{ $demographic['key'] }}">
-                        <article class="card qams-ces-demographic-card h-100">
+                        <article class="card qams-ces-demographic-card {{ $demographic['display'] === 'gender' ? 'qams-ces-demographic-card--gender' : '' }} h-100">
                             <div class="card-body">
-                                <div class="qams-ces-demographic-heading">
-                                    <span class="qams-ces-demographic-icon" aria-hidden="true">
-                                        <i class="icon-base {{ $demographic['icon'] ?? 'ri ri-user-line' }}"></i>
-                                    </span>
-                                    <div class="qams-ces-demographic-copy">
-                                        <h6 class="card-title mb-1">{{ $demographic['label'] }}</h6>
-                                    </div>
-                                </div>
-                                <div class="qams-ces-demographic-count">
-                                    <strong class="qams-ces-demographic-total" data-ces-demographic-total="{{ $demographic['key'] }}">—</strong>
-                                    <span>students</span>
-                                </div>
                                 @if ($demographic['display'] === 'gender')
+                                    <div class="qams-ces-demographic-info">
+                                        <div class="qams-ces-demographic-heading">
+                                            <span class="qams-ces-demographic-icon" aria-hidden="true">
+                                                <i class="icon-base {{ $demographic['icon'] ?? 'ri ri-user-line' }}"></i>
+                                            </span>
+                                            <div class="qams-ces-demographic-copy">
+                                                <h6 class="card-title mb-1">{{ $demographic['label'] }}</h6>
+                                            </div>
+                                        </div>
+                                        <div class="qams-ces-demographic-count">
+                                            <strong class="qams-ces-demographic-total" data-ces-demographic-total="{{ $demographic['key'] }}">—</strong>
+                                            <span>students</span>
+                                        </div>
+                                        <div class="qams-ces-gender-values">
+                                            <span>
+                                                <span class="visually-hidden">Male</span>
+                                                <span class="qams-ces-gender-count"><strong data-ces-male="{{ $demographic['key'] }}">—</strong><small data-ces-male-share="{{ $demographic['key'] }}">—</small></span>
+                                            </span>
+                                            <span>
+                                                <span class="visually-hidden">Female</span>
+                                                <span class="qams-ces-gender-count"><strong data-ces-female="{{ $demographic['key'] }}">—</strong><small data-ces-female-share="{{ $demographic['key'] }}">—</small></span>
+                                            </span>
+                                        </div>
+                                    </div>
                                     <div class="qams-ces-demographic-chart-wrap">
                                         <div
-                                            class="progress qams-ces-demographic-chart"
+                                            class="qams-ces-demographic-donut"
                                             data-ces-demographic-chart="{{ $demographic['key'] }}"
                                             role="img"
                                             aria-label="{{ $demographic['label'] }} gender distribution"
                                         >
-                                            <div class="progress-bar qams-ces-male" data-ces-male-segment aria-hidden="true"></div>
-                                            <div class="progress-bar qams-ces-female" data-ces-female-segment aria-hidden="true"></div>
                                         </div>
                                         <p class="qams-ces-demographic-empty mb-0" data-ces-demographic-empty="{{ $demographic['key'] }}" hidden>
                                             No students recorded in this group
                                         </p>
                                     </div>
-                                    <div class="qams-ces-gender-values">
-                                        <span>
-                                            <span class="visually-hidden">Male</span>
-                                            <span class="qams-ces-gender-count"><strong data-ces-male="{{ $demographic['key'] }}">—</strong><small data-ces-male-share="{{ $demographic['key'] }}">—</small></span>
-                                        </span>
-                                        <span>
-                                            <span class="visually-hidden">Female</span>
-                                            <span class="qams-ces-gender-count"><strong data-ces-female="{{ $demographic['key'] }}">—</strong><small data-ces-female-share="{{ $demographic['key'] }}">—</small></span>
-                                        </span>
-                                    </div>
                                 @else
+                                    <div class="qams-ces-demographic-heading">
+                                        <span class="qams-ces-demographic-icon" aria-hidden="true">
+                                            <i class="icon-base {{ $demographic['icon'] ?? 'ri ri-user-line' }}"></i>
+                                        </span>
+                                        <div class="qams-ces-demographic-copy">
+                                            <h6 class="card-title mb-1">{{ $demographic['label'] }}</h6>
+                                        </div>
+                                    </div>
+                                    <div class="qams-ces-demographic-count">
+                                        <strong class="qams-ces-demographic-total" data-ces-demographic-total="{{ $demographic['key'] }}">—</strong>
+                                        <span>students</span>
+                                    </div>
                                     <p class="qams-ces-demographic-note mb-0" data-ces-demographic-note="{{ $demographic['key'] }}">{{ $demographic['note'] ?? '' }}</p>
                                 @endif
                             </div>
@@ -148,8 +160,8 @@
                 <h5 class="card-title mb-3">Financial Demographics</h5>
                 <div class="card qams-ces-financial-chart-card">
                     <div class="card-body">
-                        <div class="qams-ces-financial-chart" data-ces-financial-chart></div>
                         <div class="qams-ces-financial-legend" data-ces-financial-legend role="list" aria-label="Financial metric and scholarship legend"></div>
+                        <div class="qams-ces-financial-chart" data-ces-financial-chart></div>
                         <p class="qams-ces-financial-note mb-0" data-ces-financial-note></p>
                     </div>
                 </div>

@@ -3,7 +3,7 @@
 namespace App\Services\Integrations;
 
 use App\Contracts\SystemDataIntegration;
-use App\Exceptions\CesAnalyticsSnapshotUnavailable;
+use App\Exceptions\CesWarehouseUnavailable;
 use App\Services\CesEnrollmentAnalytics;
 
 class CesSystemIntegration implements SystemDataIntegration
@@ -12,7 +12,7 @@ class CesSystemIntegration implements SystemDataIntegration
 
     public function cacheVersion(): ?string
     {
-        return 'analytics-snapshot-v1';
+        return 'warehouse-analytics-v1';
     }
 
     public function acceptsCachedData(array $data): bool
@@ -54,10 +54,10 @@ class CesSystemIntegration implements SystemDataIntegration
     {
         try {
             $analytics = $this->analytics->get();
-        } catch (CesAnalyticsSnapshotUnavailable $exception) {
+        } catch (CesWarehouseUnavailable $exception) {
             return [
                 'source' => 'unavailable',
-                'source_label' => 'Snapshot unavailable',
+                'source_label' => 'Warehouse unavailable',
                 'summary' => $exception->getMessage(),
                 'updated_at' => null,
                 'metrics' => [],
@@ -69,7 +69,7 @@ class CesSystemIntegration implements SystemDataIntegration
         if ($this->hasUnavailableCampus($analytics) || ! is_string($year) || preg_match('/^\d{4}$/D', $year) !== 1) {
             return [
                 'source' => 'unavailable',
-                'source_label' => 'Enrollment data unavailable',
+                'source_label' => 'Warehouse data unavailable',
                 'summary' => 'The current school-year enrollment total is unavailable because the academic year could not be fully verified across CES campuses.',
                 'updated_at' => now()->toIso8601String(),
                 'metrics' => [],
@@ -82,8 +82,8 @@ class CesSystemIntegration implements SystemDataIntegration
         if (! is_array($metric) || ! is_numeric($metric['value'] ?? null)) {
             return [
                 'source' => 'unavailable',
-                'source_label' => 'Enrollment data unavailable',
-                'summary' => 'CES did not return a valid current school-year enrollment total.',
+                'source_label' => 'Warehouse data unavailable',
+                'summary' => 'CES warehouse did not return a valid current school-year enrollment total.',
                 'updated_at' => now()->toIso8601String(),
                 'metrics' => [],
             ];
@@ -91,8 +91,8 @@ class CesSystemIntegration implements SystemDataIntegration
 
         return [
             'source' => 'live',
-            'source_label' => 'Synced snapshot',
-            'summary' => 'Current school-year enrollment total from the latest synchronized CES snapshot.',
+            'source_label' => 'QAMS warehouse',
+            'summary' => 'Current school-year enrollment total from the latest successful CES warehouse load.',
             'updated_at' => $analytics['updated_at'] ?? now()->toIso8601String(),
             'metrics' => [[
                 'label' => sprintf('Total Enrolled Students (AY %s-%d)', $year, (int) $year + 1),

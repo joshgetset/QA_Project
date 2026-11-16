@@ -15,12 +15,12 @@ class CesEnrollmentSummaryController extends Controller
         try {
             $data = $integration->fetchLocalData();
         } catch (QueryException|\PDOException $exception) {
-            Log::warning('CES enrollment snapshot could not be retrieved.', [
+            Log::warning('CES warehouse enrollment analytics could not be retrieved.', [
                 'exception' => $exception::class,
             ]);
 
             return response()->json([
-                'message' => 'CES enrollment snapshot is temporarily unavailable.',
+                'message' => 'CES warehouse enrollment analytics is temporarily unavailable.',
             ], 503);
         }
 
@@ -28,7 +28,7 @@ class CesEnrollmentSummaryController extends Controller
             return response()->json([
                 'message' => is_string($data['summary'] ?? null)
                     ? $data['summary']
-                    : 'CES enrollment snapshot is unavailable.',
+                    : 'CES warehouse enrollment analytics is unavailable.',
             ], 503);
         }
 

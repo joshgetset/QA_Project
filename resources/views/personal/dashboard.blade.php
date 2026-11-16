@@ -91,13 +91,11 @@
     <nav class="qams-dashboard-toolbar" aria-label="Filter systems">
         <div class="qams-category-filters" role="group" aria-label="System categories">
             <button type="button" class="btn qams-category-filter active" data-category-filter="all" aria-pressed="true">
-                All Systems <span class="qams-filter-count">{{ count($systems) }}</span>
+                All Systems
             </button>
             @foreach ($categories as $categoryKey => $category)
                 <button type="button" class="btn qams-category-filter" data-category-filter="{{ $categoryKey }}" aria-pressed="false">
-                    <span class="qams-category-dot qams-accent-{{ $categoryKey }}"></span>
                     {{ $category['name'] }}
-                    <span class="qams-filter-count">{{ count(array_intersect($category['systems'], array_column($systems, 'key'))) }}</span>
                 </button>
             @endforeach
         </div>
