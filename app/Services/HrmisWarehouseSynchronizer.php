@@ -22,7 +22,8 @@ class HrmisWarehouseSynchronizer
 
     public function __construct(
         private readonly HrmisEmployeeClassifier $classifier,
-        private readonly HrmisSourceApiClient $sourceApiClient
+        private readonly HrmisSourceApiClient $sourceApiClient,
+        private readonly HrmisCampusDirectory $campusDirectory
     ) {}
 
     /**
@@ -46,6 +47,11 @@ class HrmisWarehouseSynchronizer
             if ($extracted['employees'] === []) {
                 throw new RuntimeException('HRMIS returned no active employees; the current warehouse snapshot was not changed.');
             }
+
+            foreach ($extracted['employees'] as &$employee) {
+                $employee['gender_code'] = $this->classifier->gender($employee['gender_code'] ?? null);
+            }
+            unset($employee);
 
             $counts = $warehouse->transaction(function () use ($warehouse, $extracted, $startedAt, $runId): array {
                 $this->stage($warehouse, $extracted, $startedAt);
@@ -178,14 +184,6 @@ class HrmisWarehouseSynchronizer
 
             $pwd = $row->is_pwd === null ? null : (string) $row->is_pwd;
             $genderCode = $this->classifier->gender($row->source_sex);
-            if (
-                (int) $row->sex_is_encrypted === 1
-                && trim((string) $row->source_sex) !== ''
-                && ! in_array($genderCode, ['male', 'female'], true)
-            ) {
-                throw new RuntimeException('Decrypted HRMIS sex values were not recognized; verify HRMIS_SEX_ENCRYPTION_KEY and the source encoding.');
-            }
-
             $employees[] = [
                 'source_employee_id' => (int) $row->source_employee_id,
                 'source_campus_id' => max(0, (int) $row->source_campus_id),
@@ -301,16 +299,7 @@ class HrmisWarehouseSynchronizer
         $campusIds = array_values(array_unique($campusIds));
         sort($campusIds);
 
-        foreach ($campusIds as $sourceCampusId) {
-            $warehouse->table('dim_hrmis_source_campus')->insertOrIgnore([
-                'source_campus_id' => $sourceCampusId,
-                'source_campus_label' => $sourceCampusId === 0
-                    ? 'Unknown HRMIS campus'
-                    : "HRMIS campus ID {$sourceCampusId}",
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-        }
+        $this->campusDirectory->synchronize($warehouse, $campusIds, $now);
         $campusMap = $warehouse->table('dim_hrmis_source_campus')
             ->whereIn('source_campus_id', $campusIds)
             ->pluck('id', 'source_campus_id')
@@ -367,8 +356,7 @@ class HrmisWarehouseSynchronizer
 
         $employmentStatuses = [];
         foreach ($extracted['employees'] as $row) {
-            $sourceStatus = $row['source_employment_status'] ?? 'Unknown';
-            $sourceStatus = $sourceStatus === '' ? 'Unknown' : $sourceStatus;
+            $sourceStatus = $this->nullableString($row['source_employment_status'] ?? null, 100) ?? 'Unknown Emp Status';
             $classification = $this->classifier->employment($sourceStatus);
             $employmentStatuses[$sourceStatus] = [
                 'source_status' => $sourceStatus,
@@ -400,8 +388,7 @@ class HrmisWarehouseSynchronizer
         $genderRows = [
             ['gender_code' => 'male', 'gender_label' => 'Male'],
             ['gender_code' => 'female', 'gender_label' => 'Female'],
-            ['gender_code' => 'other', 'gender_label' => 'Other'],
-            ['gender_code' => 'unknown', 'gender_label' => 'Unknown'],
+            ['gender_code' => 'unknown', 'gender_label' => 'Unknown Gender'],
         ];
         $this->upsertChunks($warehouse, 'dim_hrmis_gender', array_map(
             fn (array $row): array => [...$row, 'created_at' => $now, 'updated_at' => $now],
@@ -477,8 +464,7 @@ class HrmisWarehouseSynchronizer
         $educationIds = $maps['educationMap'];
         $factRows = [];
         foreach ($extracted['employees'] as $employee) {
-            $sourceStatus = $employee['source_employment_status'] ?? 'Unknown';
-            $sourceStatus = $sourceStatus === '' ? 'Unknown' : $sourceStatus;
+            $sourceStatus = $this->nullableString($employee['source_employment_status'] ?? null, 100) ?? 'Unknown Emp Status';
             $status = $this->classifier->employment($sourceStatus);
             $position = $this->classifier->position(
                 $employee['source_position_title'],

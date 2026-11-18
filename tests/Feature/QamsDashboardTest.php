@@ -94,8 +94,8 @@ class QamsDashboardTest extends TestCase
         )['menu'][0]['submenu'];
 
         $this->assertSame([
-            'CES',
-            'HRMIS',
+            'Student Demographics',
+            'Faculty and Staff',
             'SIS',
             'LMS',
             'ODS',
@@ -360,7 +360,7 @@ class QamsDashboardTest extends TestCase
             ->assertSee('Total Enrolled Students')
             ->assertSee('row-cols-xl-4', false)
             ->assertSee('row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 qams-ces-enrollment-metrics" aria-label="Enrollment metrics"', false)
-            ->assertSee('row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 gy-4" data-ces-demographic-cards', false)
+            ->assertSee('col-12 col-md-6 col-xl-4" data-ces-demographic-card=', false)
             ->assertDontSee('Latest synced CES snapshot')
             ->assertDontSee('Selected academic year, all semesters')
             ->assertSee('International Students')
@@ -376,8 +376,8 @@ class QamsDashboardTest extends TestCase
             ->assertSee('Students Receiving Financial Aid')
             ->assertSee('Students with Reported Annual Income')
             ->assertSee('Financial Demographics')
-            ->assertSee('class="qams-ces-financial-overview mt-4"', false)
-            ->assertSee('class="card qams-ces-financial-chart-card"', false)
+            ->assertSee('aria-labelledby="ces-financial-title"', false)
+            ->assertSee('class="qams-ces-demographic-overview qams-ces-financial-panel rounded"', false)
             ->assertDontSee('Student counts for the selected academic year and semester.')
             ->assertSee('data-ces-financial-chart', false)
             ->assertSee('data-ces-financial-legend', false)
@@ -389,16 +389,13 @@ class QamsDashboardTest extends TestCase
             ->assertDontSee('Illustrative sample data')
             ->assertSee('data-ces-view="cards"', false)
             ->assertSee('data-ces-view="chart"', false)
-            ->assertSee('qams-ces-gender-legend', false)
+            ->assertDontSee('qams-ces-gender-legend', false)
             ->assertDontSee('qams-ces-gender-label', false)
             ->assertSee('data-ces-demographic-overview', false)
             ->assertSee('data-ces-demographic-chart', false)
             ->assertSee('class="qams-ces-demographic-donut"', false)
             ->assertDontSee('class="progress qams-ces-demographic-chart"', false)
-            ->assertSee('data-ces-demographic-note="children-of-ofws"', false)
-            ->assertDontSee('data-ces-male="children-of-ofws"', false)
-            ->assertSee('data-ces-demographic-note="international-students-developing-countries"', false)
-            ->assertDontSee('data-ces-male="international-students-developing-countries"', false)
+            ->assertSee('data-ces-demographic-empty-label>No Student Record', false)
             ->assertSee('ri ri-global-line', false)
             ->assertSee('ri ri-hand-heart-line', false)
             ->assertSee('ri ri-plane-line', false)
@@ -412,12 +409,12 @@ class QamsDashboardTest extends TestCase
             strpos($response->getContent(), 'data-ces-summary="total-enrolled-students"')
         );
         self::assertLessThan(
-            strpos($response->getContent(), '<h5 class="card-title mb-3">Financial Demographics</h5>'),
-            strpos($response->getContent(), '<h5 class="mb-1">Student Demographics</h5>')
+            strpos($response->getContent(), 'id="ces-financial-title"'),
+            strpos($response->getContent(), '>Student Demographics</h5>')
         );
         self::assertLessThan(
-            strpos($response->getContent(), 'data-ces-financial-chart'),
-            strpos($response->getContent(), 'data-ces-financial-legend')
+            strpos($response->getContent(), 'data-ces-financial-legend'),
+            strpos($response->getContent(), 'data-ces-financial-chart')
         );
     }
 

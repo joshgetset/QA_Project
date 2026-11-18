@@ -29,6 +29,34 @@
   text-decoration: none;
 }
 
+.qams-system-section {
+  margin-bottom: 1.4rem;
+}
+
+.qams-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.qams-section-count {
+  color: #6f7d8c;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.qams-section-rule {
+  height: 1px;
+  flex: 1;
+  background: #e2e8f0;
+}
+
 .qams-system-card {
   border: 1px solid #e6eaf0;
   box-shadow: 0 4px 14px rgb(34 48 62 / 18%);
@@ -368,34 +396,6 @@
   font-size: 0.75rem;
 }
 
-.qams-system-section {
-  margin-bottom: 1.4rem;
-}
-
-.qams-section-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 0.75rem;
-  color: #334155;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.qams-section-count {
-  color: #6f7d8c;
-  font-weight: 400;
-  letter-spacing: normal;
-}
-
-.qams-section-rule {
-  height: 1px;
-  flex: 1;
-  background: #e2e8f0;
-}
-
 .qams-system-card {
   position: relative;
   overflow: hidden;
@@ -421,6 +421,7 @@
 
 .qams-system-card .card-body {
   gap: 0.15rem;
+  isolation: isolate;
   padding: 0.9rem;
 }
 
@@ -539,45 +540,27 @@
   font-size: 0.72rem;
 }
 
-.qams-system-trend {
-  display: flex;
+.qams-system-decoration {
+  position: relative;
   min-width: 0;
-  align-items: center;
-  gap: 0.5rem;
+  height: 1.75rem;
+  flex: 0 0 1.75rem;
   margin-top: auto;
-  padding-top: 0.35rem;
+  margin-inline-start: 50%;
 }
 
-.qams-system-trend[hidden] {
+.qams-system-decoration::before {
+  position: absolute;
+  z-index: -1;
+  inset: -5rem 0 0;
+  background: linear-gradient(to bottom, currentColor, transparent);
+  clip-path: polygon(0 94%, 24% 77%, 43% 58%, 64% 40%, 83% 20%, 100% 7%, 100% 100%, 0 100%);
+  opacity: 0.24;
+  content: '';
+}
+
+.qams-system-grid.qams-list-view .qams-system-decoration {
   display: none;
-}
-
-.qams-system-trend-change {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  padding: 0.2rem 0.45rem;
-  background: rgb(111 125 140 / 10%);
-  color: #6f7d8c;
-  font-size: 0.65rem;
-  font-weight: 700;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.qams-trend-up {
-  background: rgb(32 201 151 / 12%);
-  color: #119d80;
-}
-
-.qams-trend-down {
-  background: rgb(230 55 87 / 10%);
-  color: #d5355a;
-}
-
-.qams-system-trend-chart {
-  min-width: 0;
-  height: 2.4rem;
-  flex: 1 1 auto;
 }
 
 .qams-system-grid.qams-list-view > .qams-system-column {
@@ -647,13 +630,14 @@
 .qams-ces-filter-select {
   min-height: 2.75rem;
   border-radius: 0.75rem;
+  background-color: var(--bs-paper-bg);
   box-shadow: 0 2px 4px rgb(34 48 62 / 10%);
   color: #344054;
   font-size: 0.8rem;
   font-weight: 600;
 }
 
-.qams-ces-summary-card {
+.qams-analytics-summary-card {
   border: 1px solid #e6eaf0;
   background:
     radial-gradient(ellipse at 100% 0%, rgb(32 201 151 / 9%), transparent 48%),
@@ -665,20 +649,20 @@
   margin-bottom: 3rem !important;
 }
 
-.qams-ces-summary-card .card-body {
+.qams-analytics-summary-card .card-body {
   display: grid;
-  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
-  grid-template-rows: auto auto auto auto;
+  grid-template-columns: minmax(0, 1fr) 2.25rem;
+  grid-template-rows: auto auto;
   align-items: center;
   min-height: 7rem;
   column-gap: 0.65rem;
-  row-gap: 0.2rem;
+  row-gap: 0.75rem;
   padding: 0.75rem;
 }
 
-.qams-ces-summary-card .qams-summary-icon {
-  grid-column: 1;
-  grid-row: 1 / 3;
+.qams-analytics-summary-card .qams-summary-icon {
+  grid-column: 2;
+  grid-row: 1;
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 0.7rem;
@@ -687,44 +671,51 @@
   font-size: 1rem;
 }
 
-.qams-ces-summary-card .qams-summary-label {
-  grid-column: 1 / -1;
-  grid-row: 3;
-  align-self: end;
+.qams-analytics-summary-card .qams-summary-label {
+  grid-column: 1;
+  grid-row: 1;
   color: #6f7d8c;
 }
 
-.qams-ces-summary-card .qams-summary-value {
+.qams-analytics-summary-card .qams-summary-value {
   grid-column: 1 / -1;
-  grid-row: 4;
+  grid-row: 2;
   margin: 0;
   color: #202b3c;
   font-size: 1.65rem;
   line-height: 1.1;
 }
 
-.qams-ces-summary-primary {
+.qams-analytics-summary-primary {
   border-color: #12355f;
   background:
     radial-gradient(ellipse at 100% 0%, rgb(32 201 151 / 12%), transparent 45%),
     linear-gradient(135deg, #173b66, #092541);
 }
 
-.qams-ces-summary-primary .qams-summary-icon {
+.qams-analytics-summary-primary .qams-summary-icon {
   background: #fff;
   color: #063b73;
 }
 
-.qams-ces-summary-primary .qams-summary-label {
+.qams-analytics-summary-primary .qams-summary-label {
   color: rgb(255 255 255 / 72%);
 }
 
-.qams-ces-summary-primary .qams-summary-value {
+.qams-analytics-summary-primary .qams-summary-value {
   color: #fff;
 }
 
-.qams-ces-summary-card .qams-summary-value {
+.qams-analytics-summary-card .qams-summary-value {
   margin-top: 0.1rem;
+}
+
+.qams-ces-section-title {
+  color: #063b73;
+}
+
+h5.qams-ces-section-title {
+  font-weight: 700;
 }
 
 .qams-ces-demographic-card {
@@ -790,11 +781,13 @@
 }
 
 .qams-ces-demographic-card--gender .card-body {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
+  display: grid;
+  min-height: 20rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
 }
 
 .qams-ces-demographic-card--gender:hover {
@@ -808,20 +801,26 @@
 .qams-ces-demographic-info {
   display: flex;
   min-width: 0;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 0.45rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  justify-self: stretch;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
 }
 
-.qams-ces-demographic-card--gender .qams-ces-demographic-count {
-  margin-top: 0;
+.qams-ces-demographic-info .qams-ces-demographic-count {
+  margin: 0 0 0 auto;
+  white-space: nowrap;
+}
+
+.qams-ces-demographic-info .qams-ces-demographic-total {
+  font-size: 1.125rem;
 }
 
 .qams-ces-demographic-chart-wrap {
   display: grid;
-  width: 5.25rem;
-  min-height: 5.25rem;
-  flex: 0 0 5.25rem;
+  width: 216px;
+  min-height: 216px;
   align-items: center;
   justify-content: center;
   place-items: center;
@@ -829,74 +828,57 @@
 }
 
 .qams-ces-demographic-donut {
-  width: 82px;
-  height: 82px;
+  width: 216px;
+  height: 216px;
 }
 
 .qams-ces-demographic-donut[hidden] {
   display: none;
 }
 
+.qams-ces-gender-count::before {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  background: #696cff;
+  content: '';
+}
+
+.qams-ces-gender-count:nth-child(2)::before {
+  background: #ff6f91;
+}
+
+.qams-hrmis-gender-unknown::before {
+  background: var(--bs-secondary);
+}
+
 .qams-ces-demographic-empty {
-  display: grid;
-  width: 5rem;
-  min-height: 4rem;
-  place-items: center;
-  border: 1px dashed #dfe3eb;
-  border-radius: 0.65rem;
-  color: #7a8699;
-  font-size: 0.68rem;
-  text-align: center;
-}
-
-.qams-ces-demographic-note {
-  display: grid;
-  min-height: 3rem;
-  place-items: center;
-  padding: 0.5rem;
-  border: 1px dashed #dfe3eb;
-  border-radius: 0.65rem;
-  color: #7a8699;
-  font-size: 0.68rem;
-  text-align: center;
-}
-
-.qams-ces-financial-overview .card-title {
-  color: #344054;
-  font-weight: 600;
-}
-
-.qams-ces-financial-chart {
-  min-height: 10rem;
-}
-
-.qams-ces-financial-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem 1rem;
-  max-height: 9rem;
-  margin: 0 0 0.75rem;
-  overflow-y: auto;
-}
-
-.qams-ces-financial-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: #566a7f;
-  font-size: 0.75rem;
-}
-
-.qams-ces-financial-legend-swatch {
-  width: 0.7rem;
-  height: 0.7rem;
-  flex: 0 0 0.7rem;
+  width: 185px;
+  height: 185px;
+  border: 46px solid var(--bs-secondary-bg);
   border-radius: 50%;
 }
 
-.qams-ces-financial-note {
-  color: #7a8699;
-  font-size: 0.75rem;
+.qams-ces-financial-panel {
+  background-color: var(--bs-paper-bg);
+}
+
+.qams-ces-financial-swatch {
+  width: 0.625rem;
+  height: 0.625rem;
+  flex: 0 0 0.625rem;
+}
+
+.qams-hrmis-section {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.qams-hrmis-ratio-table {
+  font-size: 0.8125rem;
+}
+
+.qams-hrmis-ratio-table > :not(caption) > * > * {
+  padding: 0.35rem 0.65rem;
 }
 
 .qams-ces-demographic-empty[hidden] {
@@ -905,70 +887,18 @@
 
 .qams-ces-gender-values {
   display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  color: #6f7d8c;
-  font-size: 0.72rem;
-}
-
-.qams-ces-gender-legend {
-  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.8rem;
+  justify-content: center;
+  gap: 0.25rem 1rem;
   color: #6f7d8c;
   font-size: 0.72rem;
 }
 
-.qams-ces-gender-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.qams-ces-gender-values > span {
-  display: flex;
-  min-width: 0;
-  flex: 0 1 auto;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
 .qams-ces-gender-count {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-}
-
-.qams-ces-gender-count {
-  color: #202b3c;
-  font-size: 0.85rem;
-}
-
-.qams-ces-gender-count small {
-  color: #7a8699;
-  font-size: 0.6rem;
-}
-
-.qams-ces-gender-values strong {
-  color: #344054;
-  font-weight: 700;
-}
-
-.qams-ces-legend-dot {
-  display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
-  flex: 0 0 auto;
-  border-radius: 50%;
-}
-
-.qams-ces-male {
-  background: #696cff;
-}
-
-.qams-ces-female {
-  background: #ff6f91;
 }
 
 .qams-ces-view-toggle .btn {
@@ -1012,7 +942,17 @@
   min-height: 18.75rem;
 }
 
-.qams-system-detail .card {
+[data-ces-overview-chart] .apexcharts-gridlines-vertical line,
+[data-ces-financial-chart] .apexcharts-gridlines-vertical line,
+[data-hrmis-chart] .apexcharts-gridlines-vertical line,
+[data-hrmis-ratio-chart] .apexcharts-gridlines-vertical line {
+  stroke: color-mix(in srgb, var(--bs-heading-color) 36%, var(--bs-paper-bg));
+  stroke-width: 1.25px;
+  stroke-dasharray: 5 3;
+}
+
+.qams-system-detail .card,
+.qams-system-detail .qams-ces-financial-panel {
   box-shadow: 0 5px 16px rgb(34 48 62 / 18%);
 }
 

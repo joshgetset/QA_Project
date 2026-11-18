@@ -10,9 +10,15 @@ if (analyticsView) {
   const cardsView = analyticsView.querySelector('[data-ces-demographic-cards]');
   const overviewView = analyticsView.querySelector('[data-ces-demographic-overview]');
   const overviewTitle = analyticsView.querySelector('[data-ces-overview-title]');
+  const overviewChartElement = analyticsView.querySelector('[data-ces-overview-chart]');
   const financialChartElement = analyticsView.querySelector('[data-ces-financial-chart]');
   const financialLegend = analyticsView.querySelector('[data-ces-financial-legend]');
-  const financialNote = analyticsView.querySelector('[data-ces-financial-note]');
+  const financialContent = analyticsView.querySelector('[data-ces-financial-content]');
+  const financialLoading = analyticsView.querySelector('[data-ces-financial-loading]');
+  const studentGenderPlot = analyticsView.querySelector('[data-ces-student-gender-chart]');
+  const studentGenderStatus = analyticsView.querySelector('[data-ces-student-gender-status]');
+  const trendPlot = analyticsView.querySelector('[data-ces-enrollment-trend-chart]');
+  const trendStatus = analyticsView.querySelector('[data-ces-enrollment-trend-status]');
   const selectors = [...analyticsView.querySelectorAll('[data-ces-filter]')];
   const allOptions = {
     campus: 'All Campuses',
@@ -22,53 +28,78 @@ if (analyticsView) {
     semester: 'Latest Semester'
   };
   let overviewChart;
+  let overviewMetrics = [];
   let financialChart;
-  let financialMetrics = [];
+  let studentGenderChart;
+  let enrollmentTrendChart;
   let requestController;
   let enrolledStudents = 0;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const percentageFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
   const demographics = new Map(
     analytics.demographics
       .filter(metric => metric.display === 'gender')
       .map(metric => {
         const element = analyticsView.querySelector(`[data-ces-demographic-chart="${metric.key}"]`);
-
-        element.dataset.chartLabel = element.getAttribute('aria-label');
-        const chart = new ApexCharts(element, {
-          chart: {
-            type: 'donut',
-            width: 82,
-            height: 82,
-            sparkline: { enabled: true },
-            toolbar: { show: false },
-            animations: { enabled: true, speed: 350 },
-            parentHeightOffset: 0
-          },
-          series: [0, 0],
-          labels: ['Male', 'Female'],
-          colors: ['#696cff', '#ff6f91'],
-          stroke: { width: 0 },
-          dataLabels: { enabled: false },
-          legend: { show: false },
-          plotOptions: { pie: { donut: { size: '72%' } } },
-          tooltip: {
-            enabled: true,
-            cssClass: 'qams-ces-demographic-tooltip',
-            y: { formatter: value => `${numberFormat.format(value)} students` }
-          }
-        });
-        chart.render();
-
-        return [
-          metric.key,
-          {
-            metric,
-            element,
-            chart,
-            emptyMessage: analyticsView.querySelector(`[data-ces-demographic-empty="${metric.key}"]`)
-          }
-        ];
+        return [metric.key, { element, label: element.getAttribute('aria-label'), series: null, chart: null }];
       })
   );
+
+  const destroyDemographicDonut = demographic => {
+    demographic.chart?.destroy();
+    demographic.chart = null;
+  };
+
+  const renderDemographicDonut = demographic => {
+    if (cardsView.hidden) return;
+    if (!demographic.series) {
+      destroyDemographicDonut(demographic);
+      return;
+    }
+
+    const animate = !reducedMotion.matches;
+    if (demographic.chart) {
+      demographic.chart.updateSeries(demographic.series, animate);
+      return;
+    }
+
+    demographic.chart = new ApexCharts(demographic.element, {
+      chart: {
+        type: 'donut',
+        width: 216,
+        height: 216,
+        sparkline: { enabled: true },
+        toolbar: { show: false },
+        animations: { enabled: animate, speed: 650, dynamicAnimation: { enabled: animate, speed: 450 } },
+        parentHeightOffset: 0
+      },
+      series: demographic.series,
+      labels: ['Male', 'Female'],
+      colors: ['#696cff', '#ff6f91'],
+      stroke: { width: 0 },
+      dataLabels: {
+        enabled: true,
+        formatter: value => percentageFormat.format(value) + '%',
+        style: { fontSize: '12px', fontWeight: 700, colors: ['#fff'] },
+        dropShadow: { enabled: false }
+      },
+      legend: { show: false },
+      plotOptions: {
+        pie: {
+          expandOnClick: true,
+          customScale: 0.88,
+          donut: { size: '50%' }
+        }
+      },
+      states: { active: { filter: { type: 'none' } } },
+      tooltip: {
+        enabled: true,
+        cssClass: 'qams-ces-demographic-tooltip',
+        y: { formatter: value => `${numberFormat.format(value)} students` }
+      }
+    });
+    demographic.chart.render();
+  };
 
   const selectedFilters = () =>
     selectors.reduce((filters, select) => {
@@ -110,176 +141,292 @@ if (analyticsView) {
   };
 
   const renderDemographics = metrics => {
-    const dataByKey = new Map(metrics.map(metric => [metric.key, metric]));
-    metrics
-      .filter(metric => metric.display === 'count' && !metric.financial)
-      .forEach(metric => {
-        const totalElement = analyticsView.querySelector(`[data-ces-demographic-total="${metric.key}"]`);
-        const noteElement = analyticsView.querySelector(`[data-ces-demographic-note="${metric.key}"]`);
-        animateNumber(totalElement, metric.available ? numberFormat.format(metric.total) : 'N/A');
-        noteElement.textContent = metric.note || 'No mapped CES data field is available for this metric.';
-      });
+    overviewMetrics = metrics.filter(metric => !metric.financial);
+    overviewMetrics.forEach(metric => {
+      const card = cardsView.querySelector('[data-ces-demographic-card="' + metric.key + '"]');
+      const count = card.querySelector('[data-ces-demographic-count]');
+      const total = metric.available ? Number(metric.total) : 0;
+      const male = Number(metric.male || 0);
+      const female = Number(metric.female || 0);
+      const demographic = demographics.get(metric.key);
+      const hasBreakdown = Boolean(demographic && total && (male || female));
+      const fallbackLabel = card.querySelector('[data-ces-demographic-empty-label]');
+      const fallbackRing = card.querySelector('[data-ces-demographic-empty]');
 
-    demographics.forEach((demographic, key) => {
-      const { element, chart, emptyMessage } = demographic;
-      const metric = dataByKey.get(key);
+      count.hidden = total === 0;
+      animateNumber(count.querySelector('[data-ces-demographic-total]'), numberFormat.format(total));
+      fallbackLabel.hidden = hasBreakdown;
+      fallbackLabel.textContent = total > 0 ? 'Student records' : 'No Student Record';
+      fallbackRing.hidden = hasBreakdown;
 
-      if (metric) demographic.metric = metric;
-
-      const totalElement = analyticsView.querySelector(`[data-ces-demographic-total="${key}"]`);
-      const maleElement = analyticsView.querySelector(`[data-ces-male="${key}"]`);
-      const femaleElement = analyticsView.querySelector(`[data-ces-female="${key}"]`);
-      const maleShareElement = analyticsView.querySelector(`[data-ces-male-share="${key}"]`);
-      const femaleShareElement = analyticsView.querySelector(`[data-ces-female-share="${key}"]`);
-
-      if (!metric || !metric.available) {
-        animateNumber(totalElement, 'N/A');
-        animateNumber(maleElement, '—');
-        animateNumber(femaleElement, '—');
-        maleShareElement.textContent = '—';
-        femaleShareElement.textContent = '—';
-        chart.updateSeries([0, 0], false);
-        element.hidden = true;
-        emptyMessage.hidden = false;
-        emptyMessage.textContent = 'No mapped CES data field is available for this metric.';
-        return;
+      if (demographic) {
+        const { element } = demographic;
+        demographic.series = hasBreakdown ? [male, female] : null;
+        element.hidden = !hasBreakdown;
+        card.querySelector('[data-ces-gender-values]').hidden = !hasBreakdown;
+        if (hasBreakdown) {
+          animateNumber(card.querySelector('[data-ces-male]'), numberFormat.format(male));
+          animateNumber(card.querySelector('[data-ces-female]'), numberFormat.format(female));
+          element.setAttribute('aria-label',
+            demographic.label + ': ' + numberFormat.format(male) + ' male, ' +
+            numberFormat.format(female) + ' female');
+        }
+        renderDemographicDonut(demographic);
       }
-
-      const total = Number(metric.total);
-      const male = Number(metric.male);
-      const female = Number(metric.female);
-      const genderTotal = male + female;
-      const maleShare = genderTotal ? (male / genderTotal) * 100 : 0;
-      const femaleShare = genderTotal ? (female / genderTotal) * 100 : 0;
-
-      animateNumber(totalElement, numberFormat.format(total));
-      animateNumber(maleElement, numberFormat.format(male));
-      animateNumber(femaleElement, numberFormat.format(female));
-      maleShareElement.textContent = `${numberFormat.format(maleShare)}%`;
-      femaleShareElement.textContent = `${numberFormat.format(femaleShare)}%`;
-      chart.updateSeries([male, female], true);
-      element.hidden = total === 0;
-      emptyMessage.hidden = total !== 0;
-      emptyMessage.textContent = 'No students recorded in this group.';
-      element.setAttribute(
-        'aria-label',
-        `${element.dataset.chartLabel}: ${numberFormat.format(male)} male, ${numberFormat.format(female)} female`
-      );
     });
 
     animateNumber(
       overviewTitle,
-      `Male vs female counts per group — ${numberFormat.format(enrolledStudents)} enrolled students`
+      `Student counts per group — ${numberFormat.format(enrolledStudents)} enrolled students`
     );
 
     if (overviewChart) {
       overviewChart.destroy();
       overviewChart = undefined;
-      requestAnimationFrame(renderOverviewChart);
     }
+    if (!overviewView.hidden) requestAnimationFrame(renderOverviewChart);
   };
 
-  const renderFinancialChart = ({ metrics, scholarships }) => {
-    financialMetrics = metrics.filter(metric => metric.financial);
-    financialMetrics.push(...scholarships.map(scholarship => ({
-      key: `scholarship-${scholarship.name}`,
-      label: scholarship.name,
-      total: scholarship.total,
-      available: true
-    })));
-    const categories = financialMetrics.map(metric => metric.label);
-    const data = financialMetrics.map(metric => metric.available ? Number(metric.total) : 0);
-    const colors = financialMetrics.map((metric, index) => {
-      const hue = ((238 + index * 137.508) % 360) / 60;
-      const chroma = 0.66;
-      const secondary = chroma * (1 - Math.abs((hue % 2) - 1));
-      const offset = 0.17;
-      const rgb = hue < 1 ? [chroma, secondary, 0]
-        : hue < 2 ? [secondary, chroma, 0]
-          : hue < 3 ? [0, chroma, secondary]
-            : hue < 4 ? [0, secondary, chroma]
-              : hue < 5 ? [secondary, 0, chroma]
-                : [chroma, 0, secondary];
-
-      return `#${rgb.map(channel => Math.round((channel + offset) * 255).toString(16).padStart(2, '0')).join('')}`;
-    });
-    const notes = financialMetrics.map(metric => metric.note).filter(Boolean);
-
-    financialNote.textContent = notes.join(' ');
-    financialLegend.replaceChildren(...financialMetrics.map((metric, index) => {
-      const item = document.createElement('span');
+  const renderFinancialChart = ({ metrics, aidBreakdown }) => {
+    const aid = metrics.find(metric => metric.key === 'financial-aid-recipients');
+    const income = metrics.find(metric => metric.key === 'household-income');
+    const colors = [
+      'success', 'cyan', 'indigo', 'pink', 'danger', 'warning', 'primary-text-emphasis', 'primary', 'teal', 'dark',
+      'purple'
+    ];
+    const aidSeries = aidBreakdown
+      .map((entry, index) => ({ ...entry, color: colors[index] }))
+      .filter(entry => entry.total > 0);
+    const minimumSegment = aid.total * 0.02;
+    const addedWidth = aidSeries.reduce((sum, entry) => sum + Math.max(0, minimumSegment - entry.total), 0);
+    const flexibleWidth = aidSeries.reduce((sum, entry) => sum + Math.max(0, entry.total - minimumSegment), 0);
+    const theme = getComputedStyle(financialChartElement);
+    const themeColor = name => theme.getPropertyValue('--bs-' + name).trim();
+    const incomeSeries = { name: 'Reported Annual Income', total: income.available ? income.total : 0, color: 'info' };
+    const legendEntries = [...aidSeries, incomeSeries].filter(entry => entry.total > 0);
+    financialLegend.replaceChildren(...legendEntries.map(entry => {
+      const item = document.createElement('li');
       const swatch = document.createElement('span');
-      const label = document.createElement('span');
-
-      item.className = 'qams-ces-financial-legend-item';
-      item.setAttribute('role', 'listitem');
-      swatch.className = 'qams-ces-financial-legend-swatch';
-      swatch.style.backgroundColor = colors[index];
+      item.className = 'd-flex align-items-center gap-1';
+      swatch.className = 'qams-ces-financial-swatch rounded-1';
+      swatch.style.backgroundColor = themeColor(entry.color);
       swatch.setAttribute('aria-hidden', 'true');
-      label.textContent = metric.label;
-      item.append(swatch, label);
-
+      item.append(swatch, entry.name);
       return item;
     }));
+    financialLegend.hidden = legendEntries.length === 0;
+    const categories = [aid, income].map(metric => metric.label + (metric.available ? '' : ' (N/A)'));
+    const series = [
+      ...aidSeries.map(entry => ({
+        name: entry.name,
+        data: [
+          entry.total < minimumSegment
+            ? minimumSegment
+            : entry.total - (addedWidth * (entry.total - minimumSegment)) / (flexibleWidth || 1),
+          0
+        ]
+      })),
+      { name: incomeSeries.name, data: [0, incomeSeries.total] }
+    ];
+    const tooltips = [[aid, aidSeries], [income, [incomeSeries]]].map(([metric, entries]) => {
+      const tooltip = document.createElement('div');
+      const title = document.createElement('div');
+      title.className = 'apexcharts-tooltip-title';
+      title.textContent = metric.label;
+      tooltip.append(title);
+
+      entries.forEach(entry => {
+        const row = document.createElement('div');
+        const swatch = document.createElement('span');
+        const text = document.createElement('div');
+        const label = document.createElement('span');
+        const value = document.createElement('span');
+        row.className = 'apexcharts-tooltip-series-group d-flex';
+        swatch.className = 'apexcharts-tooltip-marker';
+        swatch.style.backgroundColor = themeColor(entry.color);
+        text.className = 'apexcharts-tooltip-text apexcharts-tooltip-y-group';
+        label.className = 'apexcharts-tooltip-text-y-label';
+        label.textContent = entry.name + ':';
+        value.className = 'apexcharts-tooltip-text-y-value';
+        value.textContent = numberFormat.format(entry.total) + ' students';
+        text.append(label, value);
+        row.append(swatch, text);
+        tooltip.append(row);
+      });
+
+      return tooltip.outerHTML;
+    });
+
+    financialLoading.hidden = true;
+    financialContent.hidden = false;
 
     if (financialChart) financialChart.destroy();
+    financialChartElement.setAttribute('aria-label', [aid, income].map(metric =>
+      metric.label + ': ' + (metric.available ? numberFormat.format(metric.total) : 'N/A')
+    ).join('. '));
 
     financialChart = new ApexCharts(financialChartElement, {
       chart: {
         type: 'bar',
-        height: Math.max(220, categories.length * 36 + 90),
+        height: 190,
+        stacked: true,
+        fontFamily: window.config.fontFamily,
+        foreColor: themeColor('body-color'),
         toolbar: { show: false },
-        animations: { enabled: true, speed: 400 },
+        animations: { speed: 350 },
         parentHeightOffset: 0
       },
-      series: [{ name: 'Students', data }],
-      colors,
+      series,
+      colors: [...aidSeries, incomeSeries].map(entry => themeColor(entry.color)),
       plotOptions: {
-        bar: { horizontal: true, distributed: true, barHeight: '32%', borderRadius: 4, dataLabels: { position: 'top' } }
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: (value, { dataPointIndex }) => {
-          const metric = financialMetrics[dataPointIndex];
-
-          return metric && metric.available ? numberFormat.format(value) : 'N/A';
-        },
-        offsetX: 8,
-        style: { colors: ['#566a7f'] }
-      },
-      tooltip: {
-        y: {
-          formatter: (value, { dataPointIndex }) => {
-            const metric = financialMetrics[dataPointIndex];
-
-            return metric && metric.available
-              ? `${numberFormat.format(value)} students`
-              : 'Unavailable';
+        bar: {
+          horizontal: true,
+          barHeight: '55%',
+          borderRadius: 3,
+          borderRadiusApplication: 'end',
+          dataLabels: {
+            total: {
+              enabled: true,
+              offsetX: 8,
+              formatter: (_total, { dataPointIndex }) => {
+                const metric = [aid, income][dataPointIndex];
+                return metric.available ? numberFormat.format(metric.total) : '';
+              },
+              style: { color: themeColor('heading-color'), fontSize: '13px', fontWeight: 700 }
+            }
           }
         }
       },
-      grid: { borderColor: '#eef0f4', strokeDashArray: 4, padding: { left: 8, right: 24 } },
+      fill: { opacity: 1 },
+      states: {
+        hover: { filter: { type: 'darken' } },
+        active: { filter: { type: 'none' } }
+      },
+      dataLabels: { enabled: false },
+      legend: { show: false },
+      tooltip: {
+        shared: false,
+        intersect: true,
+        custom: ({ dataPointIndex }) => tooltips[dataPointIndex] || ''
+      },
+      grid: {
+        borderColor: themeColor('border-color'),
+        strokeDashArray: 4,
+        xaxis: { lines: { show: true } },
+        padding: { left: 8, right: 52 }
+      },
       xaxis: {
         categories,
         min: 0,
+        max: aid.total > 0 || (income.available && income.total > 0) ? undefined : 4,
         tickAmount: 4,
-        labels: { formatter: value => numberFormat.format(value), style: { colors: '#7a8699' } },
+        labels: { formatter: value => numberFormat.format(value) },
         axisBorder: { show: false },
         axisTicks: { show: false }
       },
-      yaxis: { labels: { maxWidth: 250, style: { colors: '#566a7f' } } },
-      legend: { show: false }
+      yaxis: { labels: { maxWidth: 250 } },
+      responsive: [{
+        breakpoint: 575,
+        options: {
+          yaxis: {
+            labels: {
+              maxWidth: 108,
+              formatter: value => value === categories[0] ? 'Financial Aid' : (income.available ? 'Annual Income' : 'Income (N/A)')
+            }
+          }
+        }
+      }]
     });
     financialChart.render();
+  };
+
+  const renderStudentGender = gender => {
+    const entries = [
+      { label: 'Male', total: gender?.male ?? 0, color: '#696cff' },
+      { label: 'Female', total: gender?.female ?? 0, color: '#ff6f91' },
+      { label: 'Unknown Gender', total: gender?.unknown_gender ?? 0, color: window.config.colors.secondary }
+    ].filter(entry => entry.total > 0);
+
+    studentGenderChart?.destroy();
+    studentGenderChart = undefined;
+    studentGenderPlot.hidden = entries.length === 0;
+    studentGenderStatus.hidden = entries.length > 0;
+    if (entries.length === 0) {
+      studentGenderStatus.textContent = gender === null ? 'Student gender data is unavailable.' : 'No students recorded.';
+      return;
+    }
+
+    studentGenderPlot.setAttribute('role', 'img');
+    studentGenderPlot.setAttribute('aria-label', entries.map(entry =>
+      `${entry.label}: ${numberFormat.format(entry.total)}`
+    ).join(', '));
+    studentGenderChart = new ApexCharts(studentGenderPlot, {
+      chart: { type: 'donut', height: 300, parentHeightOffset: 0, fontFamily: window.config.fontFamily, toolbar: { show: false } },
+      series: entries.map(entry => entry.total),
+      labels: entries.map(entry => entry.label),
+      colors: entries.map(entry => entry.color),
+      stroke: { width: 0 },
+      plotOptions: { pie: { customScale: 0.9, donut: { size: '58%' } } },
+      dataLabels: {
+        formatter: value => `${numberFormat.format(Math.round(value * 10) / 10)}%`,
+        dropShadow: { enabled: false }
+      },
+      legend: {
+        position: 'bottom',
+        onItemClick: { toggleDataSeries: false },
+        formatter: (label, { seriesIndex }) => `${label} ${numberFormat.format(entries[seriesIndex].total)}`
+      },
+      tooltip: { y: { formatter: value => `${numberFormat.format(value)} students` } }
+    });
+    studentGenderChart.render();
+  };
+
+  const renderEnrollmentTrend = (periods, semester) => {
+    enrollmentTrendChart?.destroy();
+    enrollmentTrendChart = undefined;
+    trendPlot.hidden = periods.length === 0;
+    if (periods.length === 0) {
+      trendStatus.textContent = 'No enrollment history is available for these filters.';
+      return;
+    }
+
+    const term = { '1': 'Semester 1', '2': 'Semester 2', '9': 'Summer' }[semester] ?? 'Selected semester';
+    const partialCoverage = periods.some(period => period.partial);
+    trendStatus.textContent = partialCoverage
+      ? `${term} by academic year. * Incomplete campus coverage.`
+      : `${term} by academic year.`;
+    trendPlot.setAttribute('role', 'img');
+    trendPlot.setAttribute('aria-label', periods.map(period =>
+      `${period.label}: ${numberFormat.format(period.total)} students${period.partial ? ', incomplete campus coverage' : ''}`
+    ).join('; '));
+    enrollmentTrendChart = new ApexCharts(trendPlot, {
+      chart: { type: 'area', height: 275, parentHeightOffset: 0, fontFamily: window.config.fontFamily, toolbar: { show: false }, zoom: { enabled: false } },
+      series: [{ name: 'Enrolled students', data: periods.map(period => period.total) }],
+      colors: [window.config.colors.primary],
+      stroke: { curve: 'straight', width: 3 },
+      fill: { type: 'gradient', gradient: { opacityFrom: 0.25, opacityTo: 0.04 } },
+      markers: { size: 4 },
+      dataLabels: { enabled: false },
+      grid: { borderColor: window.config.colors.borderColor, strokeDashArray: 4 },
+      xaxis: {
+        categories: periods.map(period => period.label + (period.partial ? '*' : '')),
+        axisTicks: { show: false }
+      },
+      yaxis: { min: 0, forceNiceScale: true, labels: { formatter: value => numberFormat.format(value) } },
+      tooltip: { y: { formatter: value => `${numberFormat.format(value)} students` } }
+    });
+    enrollmentTrendChart.render();
   };
 
   const renderAnalytics = payload => {
     populateFilters(payload);
     renderSummary(payload.summary);
+    renderStudentGender(payload.student_gender ?? null);
+    renderEnrollmentTrend(payload.enrollment_trend ?? [], payload.selected.semester);
     renderDemographics(payload.demographics);
     renderFinancialChart({
       metrics: payload.demographics,
-      scholarships: payload.scholarships || []
+      aidBreakdown: payload.financial_aid_breakdown || []
     });
     clearStatus();
   };
@@ -313,17 +460,32 @@ if (analyticsView) {
     } catch (error) {
       if (error.name === 'AbortError') return;
 
+      financialLoading.hidden = true;
+      if (!studentGenderChart) studentGenderStatus.textContent = 'Student gender data is unavailable.';
+      if (!enrollmentTrendChart) trendStatus.textContent = 'Enrollment history is unavailable.';
       setStatus(error.message || 'CES warehouse analytics could not be loaded.', 'danger');
     }
   };
 
   const renderOverviewChart = () => {
-    if (overviewChart) return;
+    if (overviewChart || overviewView.hidden || overviewMetrics.length === 0) return;
 
-    overviewChart = new ApexCharts(analyticsView.querySelector('[data-ces-overview-chart]'), {
+    const male = overviewMetrics.map(metric => metric.available ? Number(metric.male || 0) : 0);
+    const female = overviewMetrics.map(metric => metric.available ? Number(metric.female || 0) : 0);
+    const noBreakdown = overviewMetrics.map((metric, index) =>
+      metric.available ? Math.max(0, Number(metric.total) - male[index] - female[index]) : 0
+    );
+    const series = [{ name: 'Male', data: male }, { name: 'Female', data: female }];
+    const colors = ['#696cff', '#ff6f91'];
+    if (noBreakdown.some(total => total > 0)) {
+      series.push({ name: 'Without gender breakdown', data: noBreakdown });
+      colors.push(window.config.colors.success);
+    }
+
+    overviewChart = new ApexCharts(overviewChartElement, {
       chart: {
         type: 'bar',
-        height: Math.max(280, demographics.size * 38 + 72),
+        height: Math.max(280, overviewMetrics.length * 38 + 72),
         stacked: true,
         toolbar: { show: false },
         animations: {
@@ -334,20 +496,35 @@ if (analyticsView) {
         },
         parentHeightOffset: 0
       },
-      series: [
-        { name: 'Male', data: [...demographics.values()].map(({ metric }) => Number(metric.male || 0)) },
-        { name: 'Female', data: [...demographics.values()].map(({ metric }) => Number(metric.female || 0)) }
-      ],
-      colors: ['#696cff', '#ff6f91'],
+      series,
+      colors,
       plotOptions: {
-        bar: { horizontal: true, barHeight: '55%', borderRadius: 3, borderRadiusApplication: 'end' }
+        bar: {
+          horizontal: true,
+          barHeight: '55%',
+          borderRadius: 3,
+          borderRadiusApplication: 'end',
+          dataLabels: {
+            total: {
+              enabled: true,
+              offsetX: 8,
+              formatter: total => numberFormat.format(total),
+              style: { color: window.config.colors.headingColor, fontSize: '13px', fontWeight: 700 }
+            }
+          }
+        }
       },
       dataLabels: { enabled: false },
       legend: { position: 'bottom', horizontalAlign: 'center', markers: { radius: 12 } },
       tooltip: { y: { formatter: value => `${numberFormat.format(value)} students` } },
-      grid: { borderColor: '#eef0f4', strokeDashArray: 4, padding: { left: 8, right: 16 } },
+      grid: {
+        borderColor: window.config.colors.borderColor,
+        strokeDashArray: 4,
+        xaxis: { lines: { show: true } },
+        padding: { left: 8, right: 52 }
+      },
       xaxis: {
-        categories: [...demographics.values()].map(({ metric }) => metric.label),
+        categories: overviewMetrics.map(metric => metric.label),
         min: 0,
         tickAmount: 4,
         labels: { formatter: value => numberFormat.format(value), style: { colors: '#7a8699' } },
@@ -362,6 +539,7 @@ if (analyticsView) {
   analyticsView.querySelectorAll('[data-ces-view]').forEach(button => {
     button.addEventListener('click', () => {
       const showChart = button.dataset.cesView === 'chart';
+      if (cardsView.hidden === showChart) return;
 
       cardsView.hidden = showChart;
       overviewView.hidden = !showChart;
@@ -376,7 +554,12 @@ if (analyticsView) {
         viewButton.setAttribute('aria-pressed', String(isActive));
       });
 
-      if (showChart) requestAnimationFrame(renderOverviewChart);
+      if (showChart) {
+        demographics.forEach(destroyDemographicDonut);
+        requestAnimationFrame(renderOverviewChart);
+      } else {
+        requestAnimationFrame(() => demographics.forEach(renderDemographicDonut));
+      }
     });
   });
 

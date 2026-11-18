@@ -8,13 +8,13 @@
       "submenu": [
         {
           "url": "dashboard/systems/comprehensive-enrolment-system",
-          "name": "CES",
+          "name": "Student Demographics",
           "slug": "qams-system-system-17",
           "systemKey": "system-17"
         },
         {
           "url": "dashboard/systems/human-resource-management-system",
-          "name": "HRMIS",
+          "name": "Faculty and Staff",
           "slug": "qams-system-human-resources",
           "systemKey": "human-resources"
         },

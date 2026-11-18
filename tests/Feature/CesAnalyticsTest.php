@@ -200,10 +200,12 @@ class CesAnalyticsTest extends TestCase
             ['id' => 10, 'academic_year' => '2026', 'semester' => '1'],
             ['id' => 11, 'academic_year' => '2026', 'semester' => '2'],
             ['id' => 12, 'academic_year' => '2025', 'semester' => '2'],
+            ['id' => 13, 'academic_year' => '2025', 'semester' => '1'],
         ]);
         $warehouse->table('ces_campus_academic_periods')->insert([
             ['campus_id' => 1, 'academic_period_id' => 10, 'has_grade_table' => true, 'has_stage_table' => true, 'has_graduation_period' => true],
             ['campus_id' => 1, 'academic_period_id' => 12, 'has_grade_table' => true, 'has_stage_table' => false, 'has_graduation_period' => true],
+            ['campus_id' => 1, 'academic_period_id' => 13, 'has_grade_table' => true, 'has_stage_table' => false, 'has_graduation_period' => false],
             ['campus_id' => 2, 'academic_period_id' => 10, 'has_grade_table' => true, 'has_stage_table' => false, 'has_graduation_period' => false],
         ]);
         $warehouse->table('dim_ces_program')->insert([
@@ -223,6 +225,7 @@ class CesAnalyticsTest extends TestCase
             ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 1, 'program_id' => 1],
             ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 2, 'program_id' => 1],
             ['campus_id' => 2, 'academic_period_id' => 10, 'student_id' => 3, 'program_id' => 2],
+            ['campus_id' => 1, 'academic_period_id' => 13, 'student_id' => 1, 'program_id' => 1],
         ]);
         $warehouse->table('fact_ces_registration')->insert([
             ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 1, 'program_id' => 1, 'scholarship_id' => 101, 'source_school_year' => '2026', 'source_student_status' => 'New', 'source_scholarship_id' => 'SCH-1', 'is_finalized' => true, 'tes_value' => '0', 'unifast_paid_value' => '0'],
@@ -245,6 +248,11 @@ class CesAnalyticsTest extends TestCase
         $scholarships = collect($payload['scholarships'])->keyBy('name');
 
         $this->assertSame(2, $summary['total-enrolled-students']['value']);
+        $this->assertSame(['male' => 1, 'female' => 1, 'unknown_gender' => 0], $payload['student_gender']);
+        $this->assertSame([
+            ['label' => '2025–2026', 'total' => 1, 'partial' => false],
+            ['label' => '2026–2027', 'total' => 2, 'partial' => false],
+        ], $payload['enrollment_trend']);
         $this->assertSame(1, $summary['graduating-enrollees']['value']);
         $this->assertSame(1, $summary['already-graduated-students']['value']);
         $this->assertSame(1, $summary['new-freshman']['value']);
@@ -258,5 +266,21 @@ class CesAnalyticsTest extends TestCase
         $this->assertSame(1, $scholarships['TES']['total']);
         $this->assertFalse($payload['partial']);
         $this->assertSame('2026', $payload['selected']['year']);
+
+        $warehouse->table('fact_ces_registration')->insert([
+            ['campus_id' => 1, 'academic_period_id' => 10, 'student_id' => 1, 'program_id' => 1, 'scholarship_id' => 102, 'source_scholarship_id' => 'SCH-2', 'is_finalized' => true, 'tes_value' => '0'],
+            ['campus_id' => 2, 'academic_period_id' => 10, 'student_id' => 3, 'program_id' => 2, 'scholarship_id' => null, 'source_scholarship_id' => null, 'is_finalized' => true, 'tes_value' => '1'],
+        ]);
+
+        $payload = (new CesEnrollmentAnalytics)->get(['year' => '2026', 'semester' => '1']);
+        $aidTotal = collect($payload['demographics'])->keyBy('key')['financial-aid-recipients']['total'];
+        $breakdown = collect($payload['financial_aid_breakdown'])->pluck('total', 'name');
+
+        $this->assertSame(3, $aidTotal);
+        $this->assertSame($aidTotal, $breakdown->sum());
+        $this->assertSame(0, $breakdown['CHEDMerit']);
+        $this->assertSame(1, $breakdown['TES']);
+        $this->assertSame(1, $breakdown['Multiple Scholarships']);
+        $this->assertSame(1, $breakdown['Other or Unspecified Aid']);
     }
 }

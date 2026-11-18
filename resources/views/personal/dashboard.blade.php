@@ -71,7 +71,7 @@
                 <div class="card-body">
                     <span class="qams-summary-icon"><i class="icon-base ri ri-team-line"></i></span>
                     <span class="qams-summary-label">University personnel</span>
-                    <strong class="qams-summary-value" data-summary-value-for="human-resources">{{ $personnelSystem['metrics'][0]['value'] ?? '—' }}</strong>
+                    <strong class="qams-summary-value" data-university-personnel>{{ $universityPersonnel === null ? '—' : number_format($universityPersonnel) }}</strong>
                     <span class="qams-summary-caption">{{ $personnelSystem['name'] ?? 'Human Resource Management System' }}</span>
                 </div>
             </article>
@@ -131,21 +131,28 @@
                     <span class="qams-section-count">({{ $categorySystems->count() }})</span>
                     <span class="qams-section-rule"></span>
                 </h5>
-                <div class="row row-cols-1 row-cols-md-2 row-cols-xxl-4 g-3 qams-system-grid">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 qams-system-grid" data-system-grid>
                     @foreach ($categorySystems as $system)
                         @php
-                            $cardMetrics = $system['key'] === 'system-17'
-                                ? array_values(array_filter($system['metrics'], fn ($metric) => preg_match('/^total enrolled students \(ay \d{4}-\d{4}\)$/iD', trim($metric['label'] ?? '')) === 1))
-                                : array_slice($system['metrics'], 0, 1);
+                            $isHrmis = $system['key'] === 'human-resources';
+                            $cardSource = $isHrmis ? ($universityPersonnel === null ? 'unavailable' : 'cached') : $system['source'];
+                            $cardSourceLabel = $isHrmis ? ($universityPersonnel === null ? 'Unavailable' : 'Warehouse snapshot') : $system['source_label'];
+                            $cardMetrics = match ($system['key']) {
+                                'human-resources' => $universityPersonnel === null ? [] : [
+                                    ['label' => 'University personnel', 'value' => number_format($universityPersonnel)],
+                                ],
+                                'system-17' => array_values(array_filter($system['metrics'], fn ($metric) => preg_match('/^total enrolled students \(ay \d{4}-\d{4}\)$/iD', trim($metric['label'] ?? '')) === 1)),
+                                default => array_slice($system['metrics'], 0, 1),
+                            };
                         @endphp
-                        <div class="col qams-system-column" data-system-column data-system-order="{{ $loop->index }}">
+                        <div class="col qams-system-column" data-system-column>
                             <a
                                 class="qams-system-card-link"
                                 href="{{ route('qams.system', ['system' => \Illuminate\Support\Str::slug($system['name'])]) }}"
                                 data-system-card="{{ $system['key'] }}"
                                 data-system-name="{{ $system['name'] }}"
                                 data-category="{{ $categoryKey }}"
-                                data-source="{{ $system['source'] }}"
+                                data-source="{{ $cardSource }}"
                                 aria-label="View {{ $system['name'] }} total metrics"
                             >
                                 <article class="card qams-system-card qams-accent-border-{{ $categoryKey }} h-100">
@@ -158,13 +165,13 @@
                                                 <span class="qams-system-short-name qams-accent-text-{{ $categoryKey }}">{{ $shortNames[$system['key']] ?? '' }}</span>
                                                 <h6 class="card-title qams-system-name mb-0">{{ $system['name'] }}</h6>
                                             </div>
-                                            <span class="qams-system-status qams-status-{{ $system['source'] }}" title="{{ $system['source_label'] }}" aria-label="{{ $system['source_label'] }}"></span>
+                                            <span class="qams-system-status qams-status-{{ $cardSource }}" title="{{ $cardSourceLabel }}" aria-label="{{ $cardSourceLabel }}"></span>
                                         </div>
                                         <div class="qams-metrics" data-system-metrics>
                                             @forelse (array_slice($cardMetrics, 0, 1) as $metric)
                                                 <div class="qams-metric">
                                                     <strong class="qams-metric-value">{{ $metric['value'] }}</strong>
-                                                    <span class="qams-metric-label">{{ $metric['label'] }}</span>
+                                                    <span class="qams-metric-label">{{ $system['key'] === 'system-17' ? 'Enrolled students' : $metric['label'] }}</span>
                                                 </div>
                                             @empty
                                                 <p class="qams-empty-metrics mb-0">
@@ -172,11 +179,9 @@
                                                 </p>
                                             @endforelse
                                         </div>
-                                        <div class="qams-system-trend" data-system-trend>
-                                            <span class="qams-system-trend-change" data-trend-change aria-live="polite"></span>
-                                            <div class="qams-system-trend-chart" data-trend-chart aria-hidden="true"></div>
-                                        </div>
-                                    </article>
+                                        <div class="qams-system-decoration qams-accent-text-{{ $categoryKey }}" aria-hidden="true"></div>
+                                    </div>
+                                </article>
                             </a>
                         </div>
                     @endforeach

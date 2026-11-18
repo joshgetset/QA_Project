@@ -226,12 +226,18 @@ class CesEnrollmentAnalytics
         }
 
         $summary = array_fill_keys(array_column(self::SUMMARY_METRICS, 'key'), 0);
+        $studentGender = null;
         $demographics = $this->emptyDemographics($incomeCampuses);
         $scholarshipTotals = array_fill_keys(self::SCHOLARSHIP_TYPES, 0);
+        $aidBreakdown = array_fill_keys([...self::SCHOLARSHIP_TYPES, 'Multiple Scholarships', 'Other or Unspecified Aid'], 0);
         if ($selectedPeriodId !== null && $campusIds !== []) {
             $enrollmentQuery = $this->enrollmentQuery($warehouse, $campusIds, $selectedPeriodId, $filters);
             $enrollmentCounts = (clone $enrollmentQuery)->selectRaw(<<<'SQL'
                 COUNT(DISTINCT f.student_id) AS total_enrolled_students,
+                COUNT(DISTINCT CASE WHEN LOWER(TRIM(COALESCE(s.sex, ''))) IN ('m', 'male')
+                    THEN f.student_id END) AS enrolled_male,
+                COUNT(DISTINCT CASE WHEN LOWER(TRIM(COALESCE(s.sex, ''))) IN ('f', 'female')
+                    THEN f.student_id END) AS enrolled_female,
                 COUNT(DISTINCT CASE WHEN
                     LOWER(TRIM(COALESCE(s.nationality, ''))) <> ''
                     AND LOWER(TRIM(s.nationality)) NOT LIKE '%filipin%'
@@ -281,6 +287,15 @@ class CesEnrollmentAnalytics
             $summary['total-enrolled-students'] = $hasEnrollmentData
                 ? (int) ($enrollmentCounts->total_enrolled_students ?? 0)
                 : null;
+            if ($hasEnrollmentData) {
+                $male = (int) $enrollmentCounts->enrolled_male;
+                $female = (int) $enrollmentCounts->enrolled_female;
+                $studentGender = [
+                    'male' => $male,
+                    'female' => $female,
+                    'unknown_gender' => $summary['total-enrolled-students'] - $male - $female,
+                ];
+            }
             $this->populateGenderMetric($demographics, 'international-students', $enrollmentCounts, 'international');
             $this->populateGenderMetric($demographics, '4ps-beneficiaries', $enrollmentCounts, 'four_ps');
             $this->populateGenderMetric($demographics, 'persons-with-disabilities', $enrollmentCounts, 'disability');
@@ -319,6 +334,22 @@ class CesEnrollmentAnalytics
             foreach ($scholarshipRows as $row) {
                 $scholarshipTotals[$row->canonical_name] = (int) $row->recipients;
             }
+
+            $aidScholarshipsByStudent = (clone $financialAidQuery)
+                ->join('dim_ces_scholarship as scholarship', 'f.scholarship_id', '=', 'scholarship.id')
+                ->whereIn('scholarship.canonical_name', self::SCHOLARSHIP_TYPES)
+                ->selectRaw('MIN(scholarship.canonical_name) AS scholarship_name, COUNT(DISTINCT scholarship.canonical_name) AS scholarship_count')
+                ->groupBy('f.student_id');
+            $aidScholarshipGroups = $warehouse->query()
+                ->fromSub($aidScholarshipsByStudent, 'student_aid')
+                ->selectRaw('scholarship_name, scholarship_count, COUNT(*) AS recipients')
+                ->groupBy('scholarship_name', 'scholarship_count')
+                ->get();
+            foreach ($aidScholarshipGroups as $group) {
+                $name = (int) $group->scholarship_count > 1 ? 'Multiple Scholarships' : $group->scholarship_name;
+                $aidBreakdown[$name] += (int) $group->recipients;
+            }
+            $aidBreakdown['Other or Unspecified Aid'] = $demographics['financial-aid-recipients']['total'] - array_sum($aidBreakdown);
         } else {
             $summary['total-enrolled-students'] = null;
         }
@@ -346,13 +377,44 @@ class CesEnrollmentAnalytics
             ? null
             : Carbon::parse($syncRun->completed_at)->toIso8601String();
 
+        $trendPeriods = [];
+        if ($selectedYear !== null && $selectedSemester !== null) {
+            foreach ($years as $year) {
+                $term = "$year-$selectedSemester";
+                if ((int) $year > (int) $selectedYear || ! isset($periodIds[$term])) {
+                    continue;
+                }
+
+                $coveredCampuses = count(array_filter(
+                    $periodsByCampus, fn ($periods) => $periods[$term]['has_grade_table'] ?? false
+                ));
+                if ($coveredCampuses > 0) {
+                    $trendPeriods[] = [
+                        'id' => $periodIds[$term],
+                        'year' => $year,
+                        'partial' => $coveredCampuses < count($campuses),
+                    ];
+                }
+                if (count($trendPeriods) === 5) {
+                    break;
+                }
+            }
+        }
+
         return [
             'summary' => array_map(
                 fn ($metric) => [...$metric, 'value' => $summary[$metric['key']]],
                 self::SUMMARY_METRICS
             ),
+            'student_gender' => $studentGender,
+            'enrollment_trend' => $this->enrollmentTrend($warehouse, $campusIds, array_reverse($trendPeriods), $filters),
             'demographics' => array_values($demographics),
             'scholarships' => $scholarships,
+            'financial_aid_breakdown' => array_map(
+                fn ($name, $total) => ['name' => $name, 'total' => $total],
+                array_keys($aidBreakdown),
+                array_values($aidBreakdown)
+            ),
             'filters' => [
                 'campus' => array_map(
                     fn ($key, $campus) => ['value' => $key, 'label' => $campus['name'].' Campus'],
@@ -414,14 +476,38 @@ class CesEnrollmentAnalytics
      * @param  list<int>  $campusIds
      * @param  array{campus: string|null, college: string|null, program: string|null, year: string|null, semester: string|null}  $filters
      */
-    private function enrollmentQuery(Connection $warehouse, array $campusIds, int $periodId, array $filters): Builder
+    private function enrollmentQuery(Connection $warehouse, array $campusIds, ?int $periodId, array $filters): Builder
     {
         return $this->applyProgramFilters($warehouse->table('fact_ces_enrollment as f')
             ->join('dim_ces_student as s', 'f.student_id', '=', 's.id')
             ->join('dim_campus as c', 'f.campus_id', '=', 'c.id')
             ->leftJoin('dim_ces_program as p', 'f.program_id', '=', 'p.id')
             ->whereIn('f.campus_id', $campusIds)
-            ->where('f.academic_period_id', $periodId), $filters);
+            ->when($periodId !== null, fn (Builder $query) => $query->where('f.academic_period_id', $periodId)), $filters);
+    }
+
+    private function enrollmentTrend(Connection $warehouse, array $campusIds, array $periods, array $filters): array
+    {
+        if ($periods === []) {
+            return [];
+        }
+
+        $counts = $this->enrollmentQuery($warehouse, $campusIds, null, $filters)
+            ->join('ces_campus_academic_periods as availability', function ($join) {
+                $join->on('availability.campus_id', '=', 'f.campus_id')
+                    ->on('availability.academic_period_id', '=', 'f.academic_period_id');
+            })
+            ->where('availability.has_grade_table', true)
+            ->whereIn('f.academic_period_id', array_column($periods, 'id'))
+            ->selectRaw('f.academic_period_id, COUNT(DISTINCT f.student_id) AS students')
+            ->groupBy('f.academic_period_id')
+            ->pluck('students', 'academic_period_id');
+
+        return array_map(fn ($period) => [
+            'label' => $period['year'].'–'.((int) $period['year'] + 1),
+            'total' => (int) $counts->get($period['id'], 0),
+            'partial' => $period['partial'],
+        ], $periods);
     }
 
     /**

@@ -28,18 +28,23 @@ class HrmisEmployeeClassifier
             preg_match('/\b(professor|prof)\b/', $normalized) === 1 => 'professor',
             preg_match('/\b(instructor|insrtructor|lecturer)\b/', $normalized) === 1 => 'instructor',
             preg_match('/\b(part\s+time|part\s+timer)\b/', $normalized) === 1
-                && preg_match('/\b(faculty|teacher|teaching|instructor|lecturer)\b/', $normalized) === 1 => 'part_time_teaching',
-            default => 'other',
+                && preg_match('/\b(faculty|teachers?|teaching|instructor|lecturer)\b/', $normalized) === 1 => 'part_time_teaching',
+            preg_match('/\bteachers?\b/', $normalized) === 1 => 'teacher',
+            default => 'unknown_position',
         };
 
-        $isTeaching = $category !== 'other'
-            || preg_match('/\b(teacher|teaching|faculty|instructor|lecturer)\b/', $normalized) === 1
-            || preg_match('/\b(teacher|teaching|faculty|instructor|lecturer)\b/', $status) === 1;
+        $isTeaching = $category !== 'unknown_position'
+            || preg_match('/\b(teaching|faculty|instructor|lecturer)\b/', $normalized) === 1
+            || preg_match('/\b(teachers?|teaching|faculty|instructor|lecturer)\b/', $status) === 1
+            || $status === 'part timer';
         $statusIdentifiesNonTeaching = preg_match(
             '/\b(staff|job order|security guards?|student assist(?:ance|ant)|on job training|casual|contractual|contract of service|co terminous)\b/',
             $status
         ) === 1;
-        $isNonTeaching = ! $isTeaching && ($normalized !== '' || $statusIdentifiesNonTeaching);
+        $isNonTeaching = ! $isTeaching && ($normalized !== '' || $statusIdentifiesNonTeaching || $status === 'job');
+        if ($category === 'unknown_position' && $normalized !== '') {
+            $category = $isTeaching ? 'teaching_unranked' : 'non_teaching';
+        }
         $isPartTime = preg_match('/\bpart\s+time(r)?\b/', $normalized) === 1
             || preg_match('/\bpart\s+time(r)?\b/', $status) === 1
             || str_contains($status, 'visiting instructor');
@@ -85,7 +90,7 @@ class HrmisEmployeeClassifier
         $isContractual = str_contains($normalized, 'contractual')
             || str_contains($normalized, 'contract of service')
             || str_contains($normalized, 'co terminous');
-        $isJobOrder = str_contains($normalized, 'job order');
+        $isJobOrder = $normalized === 'job' || str_contains($normalized, 'job order');
 
         $canonical = match (true) {
             $isJobOrder => 'job_order',
@@ -93,8 +98,8 @@ class HrmisEmployeeClassifier
             $isPermanent => 'permanent',
             $isCasual => 'casual',
             $isContractual => 'contractual',
-            $normalized === '' => 'unknown',
-            default => 'other',
+            str_contains($normalized, 'temporary') => 'temporary',
+            default => 'unknown_emp_status',
         };
 
         return [
@@ -112,8 +117,7 @@ class HrmisEmployeeClassifier
         return match ($this->normalize(is_scalar($value) ? (string) $value : null)) {
             'male', 'm', 'man' => 'male',
             'female', 'f', 'woman' => 'female',
-            '' => 'unknown',
-            default => 'other',
+            default => 'unknown',
         };
     }
 
