@@ -1,4 +1,4 @@
-import { ApexCharts } from '../vendor/libs/apex-charts/apexcharts.js';
+import { SystemDashboardChart } from './system-dashboard-chart.js';
 
 const analytics = document.querySelector('[data-hrmis-analytics]');
 
@@ -36,8 +36,8 @@ if (analytics) {
       labels: { formatter: value => number.format(value) }
     };
 
-    new ApexCharts(plot, {
-      chart: { ...chartOptions, type: 'bar', stacked: true, height: vertical ? 340 : Math.max(260, rows.length * 34 + 75) },
+    new SystemDashboardChart(plot, {
+      chart: { ...chartOptions, type: 'bar', stacked: isGender, height: vertical ? 340 : Math.max(260, rows.length * 34 + 75) },
       series: series.map(({ key, name }) => ({ name, data: rows.map(row => row[key]) })),
       colors: series.map(entry => entry.color),
       plotOptions: {
@@ -48,8 +48,9 @@ if (analytics) {
           borderRadius: 3,
           borderRadiusApplication: 'end',
           dataLabels: {
+            position: isGender ? undefined : 'top',
             total: {
-              enabled: true,
+              enabled: isGender,
               offsetX: vertical ? 0 : 8,
               offsetY: vertical ? -6 : 0,
               formatter: value => number.format(value),
@@ -58,24 +59,32 @@ if (analytics) {
           }
         }
       },
-      dataLabels: { enabled: false },
+      dataLabels: isGender ? { enabled: false } : {
+        enabled: true,
+        offsetY: -18,
+        formatter: value => number.format(value),
+        style: { colors: [color('heading-color')], fontSize: '13px', fontWeight: 700 }
+      },
       legend: { show: isGender, position: 'bottom', onItemClick: { toggleDataSeries: false } },
       tooltip: { y: { formatter: value => `${number.format(value)} employees` } },
       grid: {
         borderColor: color('border-color'),
         strokeDashArray: 4,
-        xaxis: { lines: { show: true } },
+        xaxis: { lines: { show: !vertical } },
         padding: vertical ? { top: 16, right: 12 } : { left: 6, right: 48 }
       },
       xaxis: {
-        categories: rows.map(row => vertical ? row.label.replace(/-/g, '- ').split(' ') : row.label),
+        categories: rows.map(row => {
+          if (!vertical) return row.label;
+          return (isGender ? row.label.replace(/-/g, '- ') : row.label).split(' ');
+        }),
         ...(vertical ? { labels: { rotate: 0, hideOverlappingLabels: false } } : numericAxis),
         axisBorder: { show: false },
         axisTicks: { show: false }
       },
       yaxis: vertical ? numericAxis : { labels: { maxWidth: 175 } },
       responsive: vertical ? [{
-        breakpoint: 991,
+        breakpoint: isGender ? 991 : 575,
         options: {
           chart: { height: 400 },
           xaxis: {
@@ -97,7 +106,7 @@ if (analytics) {
     const metric = readData(container);
     const series = genderSeries.filter(({ key }) => metric[key] > 0);
 
-    new ApexCharts(container.querySelector('[data-hrmis-plot]'), {
+    new SystemDashboardChart(container.querySelector('[data-hrmis-plot]'), {
       chart: { ...chartOptions, type: 'donut', width: 216, height: 216, sparkline: { enabled: true } },
       series: series.map(({ key }) => metric[key]),
       labels: series.map(({ name }) => name),
@@ -134,7 +143,7 @@ if (analytics) {
       plot.setAttribute('aria-label', rows.map(row => `${row.label}: ${ratioLabel(row.ratio)}`).join('; '));
 
       if (chart) chart.destroy();
-      chart = new ApexCharts(plot, {
+      chart = new SystemDashboardChart(plot, {
         chart: { ...chartOptions, type: 'bar', height: Math.max(170, rows.length * 38 + 80) },
         series: [{ name: 'Students per Teacher', data: rows.map(row => row.ratio) }],
         colors: [color('danger')],

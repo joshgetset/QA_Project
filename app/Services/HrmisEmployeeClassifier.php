@@ -35,18 +35,25 @@ class HrmisEmployeeClassifier
 
         $isTeaching = $category !== 'unknown_position'
             || preg_match('/\b(teaching|faculty|instructor|lecturer)\b/', $normalized) === 1
-            || preg_match('/\b(teachers?|teaching|faculty|instructor|lecturer)\b/', $status) === 1
-            || $status === 'part timer';
+            || preg_match('/\b(teachers?|teaching|faculty|instructor|lecturer)\b/', $status) === 1;
+        $isTeaching = match ($status) {
+            'permanent faculty', 'temporary faculty', 'part timer', 'parttimer', 'visiting instructor' => true,
+            'permanent staff', 'job', 'job order', 'contract of service', 'contract of services', 'cos',
+            'co terminous', 'coterminous' => false,
+            default => $isTeaching,
+        };
         $statusIdentifiesNonTeaching = preg_match(
-            '/\b(staff|job order|security guards?|student assist(?:ance|ant)|on job training|casual|contractual|contract of service|co terminous)\b/',
+            '/\b(staff|job order|security guards?|student assist(?:ance|ant)|on job training|casual|contractual|contract of service|co ?terminous)\b/',
             $status
         ) === 1;
-        $isNonTeaching = ! $isTeaching && ($normalized !== '' || $statusIdentifiesNonTeaching || $status === 'job');
-        if ($category === 'unknown_position' && $normalized !== '') {
+        $isNonTeaching = ! $isTeaching && ($normalized !== '' || $statusIdentifiesNonTeaching || in_array($status, ['job', 'cos'], true));
+        if ($isNonTeaching && $normalized !== '') {
+            $category = 'non_teaching';
+        } elseif ($category === 'unknown_position' && $normalized !== '') {
             $category = $isTeaching ? 'teaching_unranked' : 'non_teaching';
         }
         $isPartTime = preg_match('/\bpart\s+time(r)?\b/', $normalized) === 1
-            || preg_match('/\bpart\s+time(r)?\b/', $status) === 1
+            || preg_match('/\bpart\s*time(r)?\b/', $status) === 1
             || str_contains($status, 'visiting instructor');
         $isPartTimeTeaching = $isTeaching
             && $isPartTime;
@@ -89,6 +96,7 @@ class HrmisEmployeeClassifier
         $isCasual = str_contains($normalized, 'casual');
         $isContractual = str_contains($normalized, 'contractual')
             || str_contains($normalized, 'contract of service')
+            || $normalized === 'cos'
             || str_contains($normalized, 'co terminous');
         $isJobOrder = $normalized === 'job' || str_contains($normalized, 'job order');
 

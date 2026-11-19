@@ -1,5 +1,6 @@
 <section class="qams-hrmis-section" aria-labelledby="hrmis-ratio-title">
-    <h5 class="qams-ces-section-title mb-3" id="hrmis-ratio-title">Student-to-Teacher Ratio</h5>
+    <h5 class="qams-ces-section-title mb-1" id="hrmis-ratio-title">Student-to-Teacher Ratio</h5>
+    <p class="small text-body-secondary mb-3">Enrolled students per teaching employee across the six campuses.</p>
 
     @if ($studentTeacherRatio === null)
         <p class="alert alert-secondary mb-0">Enrollment data is unavailable for the selected reporting year.</p>
@@ -17,7 +18,6 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
                     <div>
-                        <p class="text-body-secondary mb-1">Enrolled students per teaching employee across the six campuses.</p>
                         <span class="small text-body-secondary">AY {{ $year }}–{{ $year + 1 }} · {{ $semester }}</span>
                     </div>
                     <div>

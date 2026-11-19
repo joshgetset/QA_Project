@@ -945,6 +945,7 @@ h5.qams-ces-section-title {
 [data-ces-overview-chart] .apexcharts-gridlines-vertical line,
 [data-ces-financial-chart] .apexcharts-gridlines-vertical line,
 [data-hrmis-chart] .apexcharts-gridlines-vertical line,
+[data-hrmis-chart-orientation='vertical'] .apexcharts-gridlines-horizontal line,
 [data-hrmis-ratio-chart] .apexcharts-gridlines-vertical line {
   stroke: color-mix(in srgb, var(--bs-heading-color) 36%, var(--bs-paper-bg));
   stroke-width: 1.25px;

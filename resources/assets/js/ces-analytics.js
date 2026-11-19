@@ -1,4 +1,4 @@
-import { ApexCharts } from '../vendor/libs/apex-charts/apexcharts.js';
+import { SystemDashboardChart } from './system-dashboard-chart.js';
 import { animateNumber } from './system-number-animation.js';
 
 const analyticsView = document.querySelector('[data-ces-analytics]');
@@ -63,7 +63,7 @@ if (analyticsView) {
       return;
     }
 
-    demographic.chart = new ApexCharts(demographic.element, {
+    demographic.chart = new SystemDashboardChart(demographic.element, {
       chart: {
         type: 'donut',
         width: 216,
@@ -265,7 +265,7 @@ if (analyticsView) {
       metric.label + ': ' + (metric.available ? numberFormat.format(metric.total) : 'N/A')
     ).join('. '));
 
-    financialChart = new ApexCharts(financialChartElement, {
+    financialChart = new SystemDashboardChart(financialChartElement, {
       chart: {
         type: 'bar',
         height: 190,
@@ -360,7 +360,7 @@ if (analyticsView) {
     studentGenderPlot.setAttribute('aria-label', entries.map(entry =>
       `${entry.label}: ${numberFormat.format(entry.total)}`
     ).join(', '));
-    studentGenderChart = new ApexCharts(studentGenderPlot, {
+    studentGenderChart = new SystemDashboardChart(studentGenderPlot, {
       chart: { type: 'donut', height: 300, parentHeightOffset: 0, fontFamily: window.config.fontFamily, toolbar: { show: false } },
       series: entries.map(entry => entry.total),
       labels: entries.map(entry => entry.label),
@@ -399,7 +399,7 @@ if (analyticsView) {
     trendPlot.setAttribute('aria-label', periods.map(period =>
       `${period.label}: ${numberFormat.format(period.total)} students${period.partial ? ', incomplete campus coverage' : ''}`
     ).join('; '));
-    enrollmentTrendChart = new ApexCharts(trendPlot, {
+    enrollmentTrendChart = new SystemDashboardChart(trendPlot, {
       chart: { type: 'area', height: 275, parentHeightOffset: 0, fontFamily: window.config.fontFamily, toolbar: { show: false }, zoom: { enabled: false } },
       series: [{ name: 'Enrolled students', data: periods.map(period => period.total) }],
       colors: [window.config.colors.primary],
@@ -482,7 +482,7 @@ if (analyticsView) {
       colors.push(window.config.colors.success);
     }
 
-    overviewChart = new ApexCharts(overviewChartElement, {
+    overviewChart = new SystemDashboardChart(overviewChartElement, {
       chart: {
         type: 'bar',
         height: Math.max(280, overviewMetrics.length * 38 + 72),

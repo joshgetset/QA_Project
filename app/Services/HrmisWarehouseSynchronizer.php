@@ -472,7 +472,6 @@ class HrmisWarehouseSynchronizer
             );
             $isTeaching = $position['is_teaching'];
             $isNonTeaching = $position['is_non_teaching'];
-            $isPartTime = $status['is_part_time'] || $position['is_part_time'];
             $highestEducation = $this->classifier->highestEducation(
                 $educationByEmployee[$employee['source_employee_id']] ?? []
             );
@@ -497,8 +496,6 @@ class HrmisWarehouseSynchronizer
                 'is_teaching_personnel' => $isTeaching,
                 'is_part_time_teaching' => $position['is_part_time_teaching'],
                 'is_non_teaching' => $isNonTeaching,
-                'is_non_teaching_full_time' => $isNonTeaching && ! $isPartTime,
-                'is_non_teaching_part_time' => $isNonTeaching && $isPartTime,
                 'is_non_teaching_permanent' => $isNonTeaching && $status['is_permanent'],
                 'is_non_teaching_casual' => $isNonTeaching && $status['is_casual'],
                 'is_non_teaching_contractual' => $isNonTeaching && $status['is_contractual'],

@@ -15,8 +15,6 @@ class HrmisWorkforceAnalytics
     ];
 
     private const NON_TEACHING = [
-        'is_non_teaching_full_time' => 'Full-time',
-        'is_non_teaching_part_time' => 'Part-time',
         'is_non_teaching_permanent' => 'Permanent',
         'is_non_teaching_casual' => 'Casual',
         'is_non_teaching_contractual' => 'Contractual',
@@ -114,8 +112,9 @@ class HrmisWorkforceAnalytics
             return ['label' => $label, 'total' => $total, 'male' => $male, 'female' => $female, 'unknown_gender' => $total - $male - $female];
         };
         $academic = $teaching->filter(fn ($group) =>
-            in_array($this->employmentCategory($group->source_status), ['Permanent', 'Temporary'], true)
+            in_array($this->employmentCategory($group->source_status), ['Permanent', 'Temporary', 'Temporary Faculty'], true)
         );
+        $isCoTerminous = fn ($group) => $this->employmentCategory($group->source_status) === 'Co-Terminous';
         $senior = $workforce->map(function ($group) {
             $group->senior_role = $this->seniorLeadershipRole($group->position_title)
                 ?? ($group->is_senior_academic_staff
@@ -171,27 +170,50 @@ class HrmisWorkforceAnalytics
             'sections' => [
                 [
                     'title' => 'Teaching Personnel',
+                    'description' => 'Includes permanent and temporary faculty, part timers, and visiting instructors.',
                     'gender' => [
                         ...array_map(
                             fn ($rank, $label) => $genderMetric($label, $teaching->where('position_category', $rank)),
                             array_keys(self::TEACHING_RANKS),
                             array_values(self::TEACHING_RANKS)
                         ),
-                        $genderMetric('Part-time Teaching Personnel', $teaching->where('is_part_time_teaching', true)),
+                        $genderMetric('Part-time Teaching Personnel', $teaching->where('is_part_time_teaching', true)
+                            ->reject(fn ($group) => $this->employmentCategory($group->source_status) === 'Visiting Instructor')),
+                        $genderMetric('Visiting Instructor', $teaching->filter(
+                            fn ($group) => $this->employmentCategory($group->source_status) === 'Visiting Instructor'
+                        )),
+                        $genderMetric('Temporary Faculty', $teaching->filter(
+                            fn ($group) => $this->employmentCategory($group->source_status) === 'Temporary Faculty'
+                        )),
                     ],
                     'education' => $educationMetrics(self::HIGHER_EDUCATION, $teaching),
                 ],
                 [
                     'title' => 'Non-Teaching Personnel',
-                    'gender' => array_map(
-                        fn ($flag, $label) => $genderMetric($label, $nonTeaching->where($flag, true)),
-                        array_keys(self::NON_TEACHING),
-                        array_values(self::NON_TEACHING)
-                    ),
+                    'description' => 'Includes permanent staff, casual and contractual personnel, job order workers, and co-terminous appointees.',
+                    'gender' => [
+                        ...array_map(
+                            fn ($flag, $label) => $genderMetric($label, $flag === 'is_non_teaching_contractual'
+                                ? $nonTeaching->where($flag, true)->reject($isCoTerminous)
+                                : $nonTeaching->where($flag, true)),
+                            array_keys(self::NON_TEACHING),
+                            array_values(self::NON_TEACHING)
+                        ),
+                        $genderMetric('Co-Terminous', $nonTeaching->filter($isCoTerminous)),
+                        $genderMetric('Security Guards', $nonTeaching->filter(
+                            fn ($group) => $this->isSecurityGuard($group->source_status)
+                                || $this->isSecurityGuard($group->position_title)
+                        )),
+                    ],
                     'education' => $educationMetrics(self::NON_TEACHING_EDUCATION, $nonTeaching),
                 ],
             ],
         ];
+    }
+
+    private function isSecurityGuard(?string $value): bool
+    {
+        return preg_match('/\bsecurity[\s-]+guards?\b/i', $value ?? '') === 1;
     }
 
     private function employmentCategory(string $status): string
@@ -199,14 +221,16 @@ class HrmisWorkforceAnalytics
         $status = trim(preg_replace('/[^a-z0-9]+/i', ' ', strtolower($status)) ?? '');
 
         return match (true) {
-            preg_match('/\bco\s?terminous\b/', $status) === 1 => 'Co-terminous',
+            preg_match('/\bco\s?terminous\b/', $status) === 1 => 'Co-Terminous',
             preg_match('/\b(?:contract of services?|cos)\b/', $status) === 1 => 'Contract of Service (COS)',
             $status === 'job', preg_match('/\bjob order\b/', $status) === 1 => 'Job Order',
             preg_match('/\bcontractual\b/', $status) === 1 => 'Contractual',
             preg_match('/\bcasual\b/', $status) === 1 => 'Casual',
+            $status === 'temporary faculty' => 'Temporary Faculty',
             preg_match('/\btemporary\b/', $status) === 1 => 'Temporary',
             preg_match('/\bpermanent\b/', $status) === 1 => 'Permanent',
-            preg_match('/\b(?:part\s*time(?:r)?|visiting instructor)\b/', $status) === 1 => 'Part-time',
+            $status === 'visiting instructor' => 'Visiting Instructor',
+            preg_match('/\bpart\s*time(?:r)?\b/', $status) === 1 => 'Part-time',
             default => 'Unknown Emp Status',
         };
     }

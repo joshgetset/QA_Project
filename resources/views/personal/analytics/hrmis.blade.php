@@ -54,7 +54,8 @@
         @include('personal.analytics.student-teacher-ratio')
 
         <section class="qams-hrmis-section" aria-labelledby="hrmis-senior-roles-title">
-            <h5 class="qams-ces-section-title mb-3" id="hrmis-senior-roles-title">Senior Academic Staff by Role</h5>
+            <h5 class="qams-ces-section-title mb-1" id="hrmis-senior-roles-title">Senior Academic Staff by Role</h5>
+            <p class="small text-body-secondary mb-3">Employee counts by senior academic rank or leadership role, broken down by gender.</p>
             <div class="card qams-ces-demographic-overview">
                 <div class="card-body">
                     <div data-hrmis-chart="gender" data-hrmis-chart-orientation="vertical">
@@ -67,14 +68,18 @@
 
         @foreach ($hrmisAnalytics['sections'] as $section)
             <section class="qams-hrmis-section" aria-labelledby="hrmis-personnel-{{ $loop->index }}">
-                <h5 class="qams-ces-section-title mb-3" id="hrmis-personnel-{{ $loop->index }}">{{ $section['title'] }}</h5>
+                <h5 class="qams-ces-section-title mb-1" id="hrmis-personnel-{{ $loop->index }}">{{ $section['title'] }}</h5>
+                <p class="small text-body-secondary mb-3">{{ $section['description'] }}</p>
                 <div class="row g-3">
                     @foreach (['gender' => 'Gender Breakdown', 'education' => 'Highest Academic Achievement'] as $kind => $title)
                         <div class="col-12 col-xl-6">
                             <article class="card qams-ces-demographic-overview h-100">
                                 <div class="card-body">
-                                    <h6 class="card-title mb-2">{{ $title }}</h6>
-                                    <div data-hrmis-chart="{{ $kind }}">
+                                    <h6 class="card-title mb-1">{{ $title }}</h6>
+                                    <p class="small text-body-secondary mb-2">{{ $kind === 'gender'
+                                        ? 'Employee counts by personnel category and recorded gender.'
+                                        : 'Employee counts by highest recorded education level.' }}</p>
+                                    <div data-hrmis-chart="{{ $kind }}" @if ($kind === 'education') data-hrmis-chart-orientation="vertical" @endif>
                                         <script type="application/json">@json($section[$kind])</script>
                                         <div data-hrmis-plot></div>
                                     </div>
