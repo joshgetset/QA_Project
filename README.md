@@ -202,6 +202,18 @@ The campus database names are allow-listed in `config/ces.php`; request paramete
 
 The CES read-only account also needs `SELECT` permission on each existing graduation application table matching `stageYYYYS` in the six campus databases. Grant access only to tables that exist; tables may be added for later years/semesters, and some campuses may not have a table for every term. The application discovers stage table names through `information_schema.tables` and queries only discovered, validated `stage` names.
 
+### GAD proposal and accomplishment warehouse
+
+The authenticated GAD page and Executive Dashboard read the GAD warehouse snapshot. The source adapter reads `gad_db_backup` through `GAD_SOURCE_CONNECTION` (defaults to the existing read-only `ces_sources` connection). The protected `GET /api/source/gad/snapshot` endpoint exports proposal, beneficiary, accomplishment, and daily privileged login facts without copying employee names, emails, credentials, or login metadata.
+
+Configure a separate `GAD_API_KEY` in the source adapter and sync environment. The sync defaults to `${APP_URL}/api/source/gad/snapshot` and can be pointed at a different HTTPS endpoint through `QAMS_GAD_SOURCE_API_URL`. After applying the warehouse migration with the warehouse migration account, run `php artisan gad:sync-warehouse`. The command fetches and transforms the export before transactionally replacing the GAD warehouse tables. A failed fetch or load preserves the previous published data.
+
+The warehouse uses `fact_gad_proposal` at proposal grain, `fact_gad_proposal_beneficiary` at source beneficiary-row grain, `fact_gad_accomplishment` at report grain, and `fact_gad_employee_login` at employee-per-day grain. Their dimensions hold proposal descriptors, campus, department, beneficiary type, and source employee identifiers. Planned beneficiary totals sum the source rows per proposal and can count the same person across different proposals.
+
+The submission cohort uses `proposal.created_at` because the backup has no separate proposal submission timestamp. Pending drafts are excluded when their submission progress is incomplete. Approved proposals are completed when any linked report has final GAD approval, overdue after the latest planned end date, and ongoing when today falls inside a planned schedule window. Approved proposals outside these outcomes remain in the approved total.
+
+Gender-responsive proposal counts use the latest non-deleted recorded HGDG total per submitted proposal. Scores from 15 through 20 count as responsive under the [HGDG design guidelines](https://library.pcw.gov.ph/wp-content/uploads/2021/10/PCW-Harmonized-Gender-and-Development-Guidelines-for-Project-Development-Implementation-Monitoring-and-Evaluation-3rd-Edition-May-2016.pdf). Missing and out-of-range scores are excluded.
+
 ### Scaling integrations to multiple systems
 
 The target architecture is up to 16 system APIs, with each system API responsible for aggregating data from its own campus databases (up to six). QAMS should call the system APIs, not connect directly to as many as 96 databases. Keep each API URL and credential server-side, use a separate credential per integration, and return a consistent response such as `{ "summary": "...", "metrics": [{ "label": "...", "value": 0 }] }`. The shared executive dashboard can display those normalized metrics without a new JavaScript file for every system.

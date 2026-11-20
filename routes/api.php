@@ -2,8 +2,13 @@
 
 use App\Http\Controllers\Api\CesEnrollmentSummaryController;
 use App\Http\Controllers\Api\CesSourceExportController;
+use App\Http\Controllers\Api\GadSourceExportController;
 use App\Http\Controllers\Api\HrmisSourceExportController;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware(['throttle:60,1', 'source.api-key:gad'])
+    ->get('/source/gad/snapshot', GadSourceExportController::class)
+    ->name('source.api.gad.snapshot');
 
 Route::middleware(['throttle:60,1', 'ces.api-key'])
     ->get('/ces/enrollment-summary', CesEnrollmentSummaryController::class)

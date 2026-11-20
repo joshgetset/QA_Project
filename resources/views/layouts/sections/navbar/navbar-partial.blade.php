@@ -1,34 +1,20 @@
 <!-- ! Not required for layout-without-menu -->
-@if(!isset($navbarHideToggle))
-<div class="layout-menu-toggle navbar-nav align-items-xl-center me-4 me-xl-0 {{ isset($contentNavbar) ? ' d-xl-none ' : '' }}">
-    <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
-        <i class="icon-base ri ri-menu-line icon-md"></i>
-    </a>
+@if(($isMenu ?? true) && !isset($navbarHideToggle))
+<div class="navbar-nav align-items-xl-center me-2 me-sm-4 me-xl-0 {{ isset($contentNavbar) ? ' d-xl-none ' : '' }}">
+    <button type="button" class="layout-menu-toggle nav-item nav-link px-0 me-xl-6" aria-label="Expand sidebar" aria-controls="layout-menu" aria-expanded="false">
+        <i class="icon-base ri ri-menu-line icon-md text-primary" aria-hidden="true"></i>
+    </button>
 </div>
 @endif
 
 <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
-    <!-- Search -->
-    <div class="navbar-nav align-items-center qams-navbar-search">
-        <div class="nav-item d-flex align-items-center">
-            <i class="icon-base ri ri-search-line icon-lg lh-0"></i>
-            <input
-                type="search"
-                class="form-control border-0 shadow-none qams-navbar-search-input"
-                placeholder="{{ request()->routeIs('dashboard-analytics') ? 'Search systems...' : 'Search...' }}"
-                aria-label="{{ request()->routeIs('dashboard-analytics') ? 'Search systems' : 'Search' }}"
-                @if (request()->routeIs('dashboard-analytics')) data-qams-system-search @endif
-            >
-        </div>
-    </div>
-    <!-- /Search -->
-    <ul class="navbar-nav flex-row align-items-center ms-auto">
-        <li class="nav-item me-3 qams-pillar-selector">
+    <ul class="navbar-nav flex-row align-items-center gap-sm-3 ms-auto">
+        <li class="nav-item qams-pillar-selector">
             <form method="POST" action="{{ route('pillar.update') }}" class="qams-pillar-form" data-confirm-pillar>
                 @csrf
                 <div class="qams-pillar-pill" aria-label="Select pillar">
                     <i class="icon-base ri ri-government-line qams-pillar-icon" aria-hidden="true"></i>
-                    <label class="qams-pillar-label" for="qams-pillar-select">Pillar:</label>
+                    <label class="qams-pillar-label d-none d-sm-inline" for="qams-pillar-select">Pillar:</label>
                     <select
                         id="qams-pillar-select"
                         class="form-select form-select-sm qams-pillar-select"
@@ -42,6 +28,20 @@
                     </select>
                 </div>
             </form>
+        </li>
+        <li class="nav-item navbar-dropdown dropdown-notifications dropdown">
+            <button type="button" class="btn btn-icon btn-text-primary rounded-pill dropdown-toggle hide-arrow" id="navbar-notifications" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications" title="Notifications">
+                <i class="icon-base ri ri-notification-3-line icon-md" aria-hidden="true"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbar-notifications">
+                <h6 class="dropdown-header">Notifications</h6>
+                <p class="dropdown-item-text text-body-secondary mb-0">No notifications to display.</p>
+            </div>
+        </li>
+        <li class="nav-item d-none" data-navbar-fullscreen>
+            <button type="button" class="btn btn-icon btn-text-primary rounded-pill" aria-label="Enter fullscreen" title="Enter fullscreen">
+                <i class="icon-base ri ri-fullscreen-line icon-md" aria-hidden="true"></i>
+            </button>
         </li>
         <!-- User -->
         <li class="nav-item navbar-dropdown dropdown-user dropdown">
@@ -63,9 +63,8 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="flex-grow-1">
+                            <div class="flex-grow-1 qams-profile-identity">
                                 <h6 class="mb-0">{{ auth()->user()->name }}</h6>
-                                <small class="text-body-secondary">{{ auth()->user()->email }}</small>
                             </div>
                         </div>
                     </a>
@@ -82,15 +81,6 @@
                 <li>
                     <a class="dropdown-item" href="javascript:void(0);">
                         <i class="icon-base ri ri-settings-4-line icon-md me-4"></i><span>Settings</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="javascript:void(0);">
-                        <span class="d-flex align-items-center align-middle">
-                            <i class="flex-shrink-0 icon-base ri ri-bank-card-line icon-md me-3"></i>
-                            <span class="flex-grow-1 align-middle ms-1">Billing Plan</span>
-                            <span class="flex-shrink-0 badge rounded-pill bg-danger">4</span>
-                        </span>
                     </a>
                 </li>
                 <li>

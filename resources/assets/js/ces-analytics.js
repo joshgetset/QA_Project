@@ -195,15 +195,17 @@ if (analyticsView) {
       'purple'
     ];
     const aidSeries = aidBreakdown
-      .map((entry, index) => ({ ...entry, color: colors[index] }))
-      .filter(entry => entry.total > 0);
-    const minimumSegment = aid.total * 0.02;
+      .filter(entry => entry.total > 0)
+      .sort((first, second) => second.total - first.total)
+      .map((entry, index) => ({ ...entry, color: colors[index % colors.length] }));
+    const minimumSegment = aid.total * Math.min(0.02, 0.5 / Math.max(1, aidSeries.length));
     const addedWidth = aidSeries.reduce((sum, entry) => sum + Math.max(0, minimumSegment - entry.total), 0);
     const flexibleWidth = aidSeries.reduce((sum, entry) => sum + Math.max(0, entry.total - minimumSegment), 0);
     const theme = getComputedStyle(financialChartElement);
     const themeColor = name => theme.getPropertyValue('--bs-' + name).trim();
     const incomeSeries = { name: 'Reported Annual Income', total: income.available ? income.total : 0, color: 'info' };
-    const legendEntries = [...aidSeries, incomeSeries].filter(entry => entry.total > 0);
+    const financialSeries = [...aidSeries, incomeSeries];
+    const legendEntries = financialSeries.filter(entry => entry.total > 0);
     financialLegend.replaceChildren(...legendEntries.map(entry => {
       const item = document.createElement('li');
       const swatch = document.createElement('span');
@@ -228,34 +230,6 @@ if (analyticsView) {
       })),
       { name: incomeSeries.name, data: [0, incomeSeries.total] }
     ];
-    const tooltips = [[aid, aidSeries], [income, [incomeSeries]]].map(([metric, entries]) => {
-      const tooltip = document.createElement('div');
-      const title = document.createElement('div');
-      title.className = 'apexcharts-tooltip-title';
-      title.textContent = metric.label;
-      tooltip.append(title);
-
-      entries.forEach(entry => {
-        const row = document.createElement('div');
-        const swatch = document.createElement('span');
-        const text = document.createElement('div');
-        const label = document.createElement('span');
-        const value = document.createElement('span');
-        row.className = 'apexcharts-tooltip-series-group d-flex';
-        swatch.className = 'apexcharts-tooltip-marker';
-        swatch.style.backgroundColor = themeColor(entry.color);
-        text.className = 'apexcharts-tooltip-text apexcharts-tooltip-y-group';
-        label.className = 'apexcharts-tooltip-text-y-label';
-        label.textContent = entry.name + ':';
-        value.className = 'apexcharts-tooltip-text-y-value';
-        value.textContent = numberFormat.format(entry.total) + ' students';
-        text.append(label, value);
-        row.append(swatch, text);
-        tooltip.append(row);
-      });
-
-      return tooltip.outerHTML;
-    });
 
     financialLoading.hidden = true;
     financialContent.hidden = false;
@@ -277,7 +251,7 @@ if (analyticsView) {
         parentHeightOffset: 0
       },
       series,
-      colors: [...aidSeries, incomeSeries].map(entry => themeColor(entry.color)),
+      colors: financialSeries.map(entry => themeColor(entry.color)),
       plotOptions: {
         bar: {
           horizontal: true,
@@ -307,7 +281,36 @@ if (analyticsView) {
       tooltip: {
         shared: false,
         intersect: true,
-        custom: ({ dataPointIndex }) => tooltips[dataPointIndex] || ''
+        custom: ({ seriesIndex, dataPointIndex }) => {
+          const entry = financialSeries[seriesIndex];
+          const metric = [aid, income][dataPointIndex];
+          if (!entry?.total || !metric) return '';
+
+          const tooltip = document.createElement('div');
+          const title = document.createElement('div');
+          const row = document.createElement('div');
+          const marker = document.createElement('span');
+          const text = document.createElement('div');
+          const label = document.createElement('span');
+          const value = document.createElement('span');
+
+          title.className = 'apexcharts-tooltip-title';
+          title.textContent = metric.label;
+          row.className = 'apexcharts-tooltip-series-group apexcharts-active d-flex';
+          marker.className = 'apexcharts-tooltip-marker';
+          marker.style.backgroundColor = themeColor(entry.color);
+          marker.setAttribute('aria-hidden', 'true');
+          text.className = 'apexcharts-tooltip-text apexcharts-tooltip-y-group';
+          label.className = 'apexcharts-tooltip-text-y-label';
+          label.textContent = entry.name + ':';
+          value.className = 'apexcharts-tooltip-text-y-value';
+          value.textContent = numberFormat.format(entry.total) + ' students';
+
+          text.append(label, value);
+          row.append(marker, text);
+          tooltip.append(title, row);
+          return tooltip.outerHTML;
+        }
       },
       grid: {
         borderColor: themeColor('border-color'),

@@ -67,13 +67,13 @@
 
 .qams-system-card-link:hover .qams-system-card,
 .qams-system-card-link:focus-visible .qams-system-card {
-  box-shadow: 0 10px 24px rgb(6 59 115 / 32%);
+  box-shadow: 0 10px 24px rgba(var(--bs-primary-rgb), 0.32);
   transform: translateY(-2px);
 }
 
 .qams-system-card-link:focus-visible {
   border-radius: 0.375rem;
-  outline: 3px solid rgb(6 59 115 / 40%);
+  outline: 3px solid rgba(var(--bs-primary-rgb), 0.4);
   outline-offset: 3px;
 }
 
@@ -107,8 +107,8 @@
   height: 36px;
   place-items: center;
   border-radius: 0.65rem;
-  background: rgb(6 59 115 / 10%);
-  color: #063b73;
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  color: var(--bs-primary);
   font-size: 1.5rem;
 }
 
@@ -157,7 +157,7 @@
 }
 
 .qams-metric-value {
-  color: #063b73;
+  color: var(--bs-primary);
   font-size: clamp(1rem, 1.5vw, 1.5rem);
   font-weight: 700;
   line-height: 1.15;
@@ -193,7 +193,6 @@
   white-space: nowrap;
 }
 
-.qams-status-dot,
 .qams-category-dot,
 .qams-system-status {
   display: inline-block;
@@ -201,13 +200,8 @@
   border-radius: 50%;
 }
 
-.qams-status-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-}
-
 .qams-status-live {
-  background-color: #20c997;
+  background-color: var(--qams-forest-green);
 }
 
 .qams-status-cached {
@@ -220,10 +214,10 @@
   width: 1.35rem;
   height: 1.35rem;
   place-items: center;
-  border: 2px solid rgb(6 59 115 / 20%);
-  border-top-color: #063b73;
+  border: 2px solid rgba(var(--bs-primary-rgb), 0.2);
+  border-top-color: var(--bs-primary);
   border-radius: 50%;
-  color: #063b73;
+  color: var(--bs-primary);
   font-size: 0.7rem;
 }
 
@@ -231,6 +225,51 @@
   overflow: hidden;
   border: 1px solid #e6eaf0;
   box-shadow: 0 3px 10px rgb(34 48 62 / 12%);
+}
+
+.qams-summary-cards .qams-system-card-link .qams-summary-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+@media (hover: hover) {
+  .qams-summary-cards .qams-system-card-link:hover .qams-summary-card {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(var(--bs-primary-rgb), 0.22);
+  }
+}
+
+.qams-summary-cards .qams-system-card-link .qams-summary-card::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 auto;
+  block-size: 3px;
+  background: var(--bs-primary);
+  content: "";
+  pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.28s ease-out;
+}
+
+.qams-summary-cards .qams-system-card-link:focus-visible .qams-summary-card::before {
+  transform: scaleX(1);
+}
+
+@media (hover: hover) {
+  .qams-summary-cards .qams-system-card-link:hover .qams-summary-card::before {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qams-summary-cards .qams-system-card-link .qams-summary-card,
+  .qams-summary-cards .qams-system-card-link .qams-summary-card::before {
+    transition: none;
+  }
+
+  .qams-summary-cards .qams-system-card-link:hover .qams-summary-card {
+    transform: none;
+  }
 }
 
 .qams-summary-card .card-body {
@@ -250,8 +289,8 @@
   grid-row: span 2;
   place-items: center;
   border-radius: 0.75rem;
-  background: rgb(6 59 115 / 9%);
-  color: #063b73;
+  background: rgba(var(--bs-primary-rgb), 0.09);
+  color: var(--bs-primary);
   font-size: 1.25rem;
 }
 
@@ -286,9 +325,28 @@
   white-space: nowrap;
 }
 
+.qams-summary-cards .card-body {
+  grid-template-columns: minmax(0, 1fr) 2.5rem;
+}
+
+.qams-summary-cards .qams-summary-icon {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.qams-summary-cards .qams-summary-label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.qams-summary-cards .qams-summary-value {
+  grid-column: 1;
+  grid-row: 2;
+}
+
 .qams-summary-primary {
   border-color: #0e345d;
-  background: linear-gradient(135deg, #173b66, #092541);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--bs-primary) 80%, var(--qams-sky-blue)), var(--bs-primary));
   color: #fff;
 }
 
@@ -340,8 +398,8 @@
 }
 
 .qams-category-filter.active {
-  border-color: #063b73;
-  background: #063b73;
+  border-color: var(--bs-primary);
+  background: var(--bs-primary);
   color: #fff;
 }
 
@@ -584,17 +642,12 @@
   flex: 1;
 }
 
-.qams-no-results {
-  padding: 2rem 1rem;
-  text-align: center;
-}
-
 .qams-refresh-alert {
   margin-bottom: 1.5rem;
 }
 
 .qams-dashboard-note {
-  border-left: 3px solid #063b73;
+  border-left: 3px solid var(--bs-primary);
   padding-left: 0.75rem;
 }
 
@@ -604,6 +657,52 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 3rem;
+}
+
+.qams-gad-monthly-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 36rem), 1fr));
+  gap: 1.5rem;
+}
+
+.qams-system-detail .table {
+  font-size: 0.8rem;
+}
+
+.qams-system-detail .table th {
+  font-size: 0.72rem;
+}
+
+.qams-system-detail .table thead {
+  --bs-table-header-bg-color: var(--bs-primary);
+  --bs-heading-color: var(--bs-white);
+}
+
+.qams-system-detail .qams-campus-comparison-table {
+  font-size: var(--bs-body-font-size);
+  text-align: center;
+}
+
+.qams-system-detail .qams-campus-comparison-table thead th {
+  font-size: 0.85em;
+}
+
+.qams-system-detail .qams-campus-comparison-table tbody th {
+  font-size: 0.8rem;
+  text-transform: none;
+}
+
+.qams-campus-comparison-table tr > :first-child {
+  text-align: start;
+}
+
+.qams-gad-proposal-title {
+  display: -webkit-box;
+  inline-size: clamp(14rem, 28vw, 26rem);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .qams-detail-metric .qams-metric {
@@ -617,13 +716,13 @@
 
 .qams-ces-filter-label {
   margin-bottom: 0.5rem;
-  color: #063b73;
+  color: var(--bs-primary);
   font-size: 0.9rem;
   font-weight: 600;
 }
 
 .qams-ces-filter-label .icon-base {
-  color: #063b73;
+  color: var(--bs-primary);
   font-size: 1rem;
 }
 
@@ -640,13 +739,9 @@
 .qams-analytics-summary-card {
   border: 1px solid #e6eaf0;
   background:
-    radial-gradient(ellipse at 100% 0%, rgb(32 201 151 / 9%), transparent 48%),
+    radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--qams-forest-green) 9%, transparent), transparent 48%),
     #fff;
   box-shadow: 0 3px 10px rgb(34 48 62 / 12%);
-}
-
-.qams-ces-enrollment-metrics {
-  margin-bottom: 3rem !important;
 }
 
 .qams-analytics-summary-card .card-body {
@@ -666,8 +761,8 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 0.7rem;
-  background: rgb(6 59 115 / 10%);
-  color: #063b73;
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  color: var(--bs-primary);
   font-size: 1rem;
 }
 
@@ -687,15 +782,15 @@
 }
 
 .qams-analytics-summary-primary {
-  border-color: #12355f;
+  border-color: var(--bs-primary);
   background:
-    radial-gradient(ellipse at 100% 0%, rgb(32 201 151 / 12%), transparent 45%),
-    linear-gradient(135deg, #173b66, #092541);
+    radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--qams-forest-green) 12%, transparent), transparent 45%),
+    linear-gradient(135deg, color-mix(in srgb, var(--bs-primary) 80%, var(--qams-sky-blue)), var(--bs-primary));
 }
 
 .qams-analytics-summary-primary .qams-summary-icon {
   background: #fff;
-  color: #063b73;
+  color: var(--bs-primary);
 }
 
 .qams-analytics-summary-primary .qams-summary-label {
@@ -711,7 +806,7 @@
 }
 
 .qams-ces-section-title {
-  color: #063b73;
+  color: var(--bs-primary);
 }
 
 h5.qams-ces-section-title {
@@ -751,8 +846,8 @@ h5.qams-ces-section-title {
   flex: 0 0 auto;
   place-items: center;
   border-radius: 0.65rem;
-  background: rgb(6 59 115 / 10%);
-  color: #063b73;
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  color: var(--bs-primary);
   font-size: 1rem;
 }
 
@@ -869,12 +964,8 @@ h5.qams-ces-section-title {
   flex: 0 0 0.625rem;
 }
 
-.qams-hrmis-section {
+.qams-analytics-section {
   margin-top: clamp(2.5rem, 5vw, 3.5rem);
-}
-
-.qams-hrmis-ratio-table {
-  font-size: 0.8125rem;
 }
 
 .qams-hrmis-ratio-table > :not(caption) > * > * {
@@ -913,8 +1004,8 @@ h5.qams-ces-section-title {
 }
 
 .qams-ces-view-toggle .btn.active {
-  border-color: #063b73;
-  background: #063b73;
+  border-color: var(--bs-primary);
+  background: var(--bs-primary);
   color: #fff;
 }
 
@@ -946,9 +1037,17 @@ h5.qams-ces-section-title {
 [data-ces-financial-chart] .apexcharts-gridlines-vertical line,
 [data-hrmis-chart] .apexcharts-gridlines-vertical line,
 [data-hrmis-chart-orientation='vertical'] .apexcharts-gridlines-horizontal line,
+[data-gad-monthly-chart] .apexcharts-gridlines-horizontal line,
+[data-gad-campus-chart] .apexcharts-gridlines-vertical line,
 [data-hrmis-ratio-chart] .apexcharts-gridlines-vertical line {
   stroke: color-mix(in srgb, var(--bs-heading-color) 36%, var(--bs-paper-bg));
   stroke-width: 1.25px;
+  stroke-dasharray: 5 3;
+}
+
+[data-gad-monthly-chart] .apexcharts-gridlines-vertical line {
+  stroke: color-mix(in srgb, var(--bs-heading-color) 24%, var(--bs-paper-bg));
+  stroke-width: 0.75px;
   stroke-dasharray: 5 3;
 }
 

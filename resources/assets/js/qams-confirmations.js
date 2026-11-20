@@ -1,7 +1,7 @@
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
-const primaryColor = '#063b73';
+const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--bs-primary').trim();
 
 const confirmationOptions = {
   icon: 'question',
@@ -9,6 +9,7 @@ const confirmationOptions = {
   showCancelButton: true,
   confirmButtonColor: primaryColor,
   cancelButtonColor: '#6c757d',
+  scrollbarPadding: getComputedStyle(document.documentElement).scrollbarGutter !== 'stable',
   reverseButtons: true,
   focusCancel: true
 };

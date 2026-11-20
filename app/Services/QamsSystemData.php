@@ -19,7 +19,10 @@ class QamsSystemData
 {
     private const LAST_KNOWN_GOOD_TTL_SECONDS = 86400;
 
-    public function __construct(private readonly SystemDataIntegrationResolver $integrations) {}
+    public function __construct(
+        private readonly SystemDataIntegrationResolver $integrations,
+        private readonly GadWarehouseAnalytics $gad,
+    ) {}
 
     /**
      * @return list<array{
@@ -41,6 +44,11 @@ class QamsSystemData
         $pending = [];
 
         foreach ($definitions as $key => $system) {
+            if ($key === 'system-13' && ($overview = $this->gadWarehouseOverview()) !== null) {
+                $systems[$key] = $this->get($key, $system, $overview);
+
+                continue;
+            }
             $endpoint = $system['endpoint'] ?? null;
 
             if (! is_string($endpoint) || trim($endpoint) === '') {
@@ -163,6 +171,11 @@ class QamsSystemData
         $systems = [];
 
         foreach (config('qams.systems', []) as $key => $system) {
+            if ($key === 'system-13' && ($overview = $this->gadWarehouseOverview()) !== null) {
+                $systems[] = $this->get($key, $system, $overview);
+
+                continue;
+            }
             $endpoint = $system['endpoint'] ?? null;
 
             if (! is_string($endpoint) || trim($endpoint) === '') {
@@ -221,6 +234,17 @@ class QamsSystemData
         }
 
         return null;
+    }
+
+    private function gadWarehouseOverview(): ?array
+    {
+        try {
+            return $this->gad->overview();
+        } catch (PDOException $exception) {
+            report($exception);
+
+            return null;
+        }
     }
 
     private function get(string $key, array $system, ?array $data = null): array

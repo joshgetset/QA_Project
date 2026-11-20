@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\CesEnrollmentAnalytics;
+use App\Services\GadWarehouseAnalytics;
 use App\Services\QamsSystemData;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
@@ -18,6 +19,7 @@ class QamsDashboardTest extends TestCase
     {
         parent::setUp();
         Cache::flush();
+        $this->mock(GadWarehouseAnalytics::class)->shouldReceive('overview')->andReturnNull();
 
         foreach (array_keys(config('qams.systems', [])) as $system) {
             config([
@@ -36,7 +38,7 @@ class QamsDashboardTest extends TestCase
             ->assertViewIs('personal.dashboard')
             ->assertSee('Executive Dashboard')
             ->assertSee('Student Information System')
-            ->assertSee('Current school year enrolled students')
+            ->assertSee('Students Enrolled')
             ->assertSeeHtml('data-summary-value-for="system-17">—</strong>')
             ->assertSee('Designation Management System')
             ->assertSee(route('qams.system', ['system' => 'student-information-system']))
@@ -44,16 +46,32 @@ class QamsDashboardTest extends TestCase
             ->assertDontSee('qams-system-open')
             ->assertSee('dashboard/systems/designation-management-system')
             ->assertSee('Executive Dashboard')
-            ->assertSee('row-cols-xxl-4')
+            ->assertSee('row-cols-md-3')
+            ->assertDontSeeHtml('data-live-summary-count')
+            ->assertDontSeeHtml('data-live-connection-count')
             ->assertSee('qams-system-heading')
-            ->assertSee('Systems monitored')
+            ->assertSee('Systems Monitored')
             ->assertSee('University personnel')
+            ->assertSeeHtml('>Gender Responsive Proposals</span>')
+            ->assertSeeHtml('data-summary-value-for="system-13">—</strong>')
+            ->assertSeeInOrder([
+                'Systems Monitored',
+                'Total Energy Consumption',
+                'Campuses',
+                'data-summary-value-for="system-17"',
+                'data-university-personnel',
+                'data-summary-value-for="system-13"',
+                'data-summary-value-for="research-management"',
+                'data-category-filter="all"',
+                'data-category-section="academic"',
+            ], false)
             ->assertSee('Academic Services')
             ->assertSee('People & HR')
             ->assertSee('Finance')
             ->assertSee('Health')
             ->assertSee('Research')
-            ->assertSee('data-qams-system-search')
+            ->assertSeeHtml('data-category-section')
+            ->assertDontSee('data-qams-system-search')
             ->assertSeeHtml('data-view-mode="grid"')
             ->assertSee('data-system-sort')
             ->assertDontSee('Systems Overview')
@@ -66,6 +84,7 @@ class QamsDashboardTest extends TestCase
 
         $systemNames = array_column(config('qams.systems'), 'name');
         $this->assertCount(16, $systemNames);
+        $this->assertSame(count($systemNames) - 4, substr_count($response->getContent(), 'data-system-card='));
         $categorizedSystemKeys = array_merge(...array_column(config('qams.categories'), 'systems'));
         $this->assertEqualsCanonicalizing(array_keys(config('qams.systems')), $categorizedSystemKeys);
         $this->assertCount(16, config('qams.short_names'));
@@ -359,7 +378,7 @@ class QamsDashboardTest extends TestCase
             ->assertSee('New Freshman')
             ->assertSee('Total Enrolled Students')
             ->assertSee('row-cols-xl-4', false)
-            ->assertSee('row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 qams-ces-enrollment-metrics" aria-label="Enrollment metrics"', false)
+            ->assertSee('row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3" aria-label="Enrollment metrics"', false)
             ->assertSee('col-12 col-md-6 col-xl-4" data-ces-demographic-card=', false)
             ->assertDontSee('Latest synced CES snapshot')
             ->assertDontSee('Selected academic year, all semesters')
@@ -442,6 +461,27 @@ class QamsDashboardTest extends TestCase
         $this->actingAs(User::factory()->make())
             ->get(route('qams.system', ['system' => 'system-17']))
             ->assertRedirect(route('qams.system', ['system' => 'comprehensive-enrolment-system']));
+    }
+
+    public function test_dashboard_uses_the_gad_proposal_total_instead_of_the_activity_count(): void
+    {
+        config(['qams.systems.system-13.endpoint' => 'https://gad.example.test/api/summary']);
+        Http::fake([
+            'https://gad.example.test/api/summary' => Http::response([
+                'metrics' => [
+                    ['label' => 'GAD activities', 'value' => 267],
+                    ['label' => 'Total Gender Responsive Proposals', 'value' => 42],
+                ],
+            ]),
+        ]);
+
+        $this->actingAs(User::factory()->make())
+            ->getJson(route('qams.systems'))
+            ->assertOk();
+
+        $this->get(route('dashboard-analytics'))
+            ->assertOk()
+            ->assertSeeHtml('data-summary-value-for="system-13">42</strong>');
     }
 
     public function test_systems_api_returns_normalized_data_from_a_configured_system(): void
@@ -560,7 +600,7 @@ class QamsDashboardTest extends TestCase
             ->assertSeeHtml('data-current-value="National"')
             ->assertSeeHtml('data-confirm-logout')
             ->assertSeeHtml('data-logout-button')
-            ->assertSee('qams-navbar-search-input')
+            ->assertDontSee('qams-navbar-search-input')
             ->assertSee('qams-user-avatar')
             ->assertSee('menu-active-route')
             ->assertSee('menu-item active')

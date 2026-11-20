@@ -1,5 +1,4 @@
 .google-login-page {
-  --login-blue: #064077;
   --login-ink: #344054;
   display: grid;
   min-height: 100vh;
@@ -28,7 +27,7 @@
   place-items: center;
   overflow: hidden;
   padding: 42px;
-  background: #084d88;
+  background: var(--bs-primary);
   color: #fff;
 }
 .showcase-background,
@@ -45,7 +44,7 @@
 }
 .login-showcase::before {
   z-index: 1;
-  background: linear-gradient(145deg, rgb(7 76 139 / 62%), rgb(2 45 89 / 72%));
+  background: linear-gradient(145deg, rgba(var(--bs-primary-rgb), 0.78), rgba(var(--bs-primary-rgb), 0.90));
   content: '';
 }
 .showcase-stripe {
@@ -55,13 +54,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.16;
+  opacity: 0.05;
   mix-blend-mode: screen;
 }
 .showcase-logo {
   position: relative;
   z-index: 3;
-  width: min(230px, 72%);
+  width: min(320px, 82%);
   height: auto;
   filter: drop-shadow(0 10px 24px rgb(0 24 55 / 32%));
   animation: login-fade-up 650ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
@@ -77,9 +76,9 @@
 .login-system-title {
   margin: 0 0 22px;
   align-self: flex-start;
-  color: #080f6e;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-weight: 700;
+  color: var(--bs-primary);
+  font-family: 'trajan-pro-3', 'Trajan Pro 3', 'Trajan Pro', Cinzel, Georgia, serif;
+  font-weight: 900;
   line-height: 1.1;
 }
 .login-system-title-primary,
@@ -87,14 +86,15 @@
   display: block;
 }
 .login-system-title-primary {
-  font-size: 40px;
+  font-size: clamp(25px, 3.5vw, 35px);
   letter-spacing: -0.35px;
 }
 .login-system-title-secondary {
   margin-top: 1.5px;
-  color: #000000ce;
-  font-size: 20px;
-  letter-spacing: 3px;
+  color: #000;
+  font-size: clamp(13px, 1.8vw, 19px);
+  font-weight: 600;
+  letter-spacing: 0.1em;
 }
 .login-system-title {
   animation: login-fade-up 500ms 80ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
@@ -172,7 +172,7 @@
   animation: login-fade-up 500ms 240ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 .google-login-button:hover {
-  border-color: #82b8e4;
+  border-color: var(--qams-sky-blue);
   box-shadow:
     0 10px 24px rgb(35 111 176 / 20%),
     0 3px 8px rgb(35 111 176 / 12%);
@@ -236,7 +236,7 @@
 .login-help-icon {
   flex: 0 0 auto;
   font-size: 15px;
-  color: #064077;
+  color: var(--bs-primary);
 }
 @keyframes login-fade-up {
   from {

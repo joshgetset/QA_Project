@@ -9,96 +9,112 @@
         {
           "url": "dashboard/systems/comprehensive-enrolment-system",
           "name": "Student Demographics",
+          "railIcon": "ri-graduation-cap-line",
           "slug": "qams-system-system-17",
           "systemKey": "system-17"
         },
         {
           "url": "dashboard/systems/human-resource-management-system",
           "name": "Faculty and Staff",
+          "railIcon": "ri-team-line",
           "slug": "qams-system-human-resources",
           "systemKey": "human-resources"
         },
         {
           "url": "dashboard/systems/student-information-system",
           "name": "SIS",
+          "railIcon": "ri-profile-line",
           "slug": "qams-system-student-information",
           "systemKey": "student-information"
         },
         {
           "url": "dashboard/systems/learning-management-system",
           "name": "LMS",
+          "railIcon": "ri-book-open-line",
           "slug": "qams-system-learning-management",
           "systemKey": "learning-management"
         },
         {
           "url": "dashboard/systems/online-admission-system",
           "name": "ODS",
+          "railIcon": "ri-login-box-line",
           "slug": "qams-system-07",
           "systemKey": "system-07"
         },
         {
           "url": "dashboard/systems/online-clearance-system",
           "name": "OCMS",
+          "railIcon": "ri-task-line",
           "slug": "qams-system-library-services",
           "systemKey": "library-services"
         },
         {
           "url": "dashboard/systems/procurement-management-system",
           "name": "PMIS",
+          "railIcon": "ri-shopping-cart-line",
           "slug": "qams-system-08",
           "systemKey": "system-08"
         },
         {
           "url": "dashboard/systems/policy-management-system",
           "name": "PoLMIS",
+          "railIcon": "ri-file-list-3-line",
           "slug": "qams-system-09",
           "systemKey": "system-09"
         },
         {
           "url": "dashboard/systems/clinic-management-system",
           "name": "CMIS",
+          "railIcon": "ri-heart-pulse-line",
           "slug": "qams-system-10",
           "systemKey": "system-10"
         },
         {
           "url": "dashboard/systems/online-payslip-access-system",
           "name": "OPAS",
+          "railIcon": "ri-bank-card-line",
           "slug": "qams-system-11",
           "systemKey": "system-11"
         },
         {
           "url": "dashboard/systems/research-innovation-and-extension-services-management-system",
           "name": "RIESMIS",
+          "railIcon": "ri-flask-line",
           "slug": "qams-system-research-management",
           "systemKey": "research-management"
         },
         {
           "url": "dashboard/systems/automated-faculty-evaluation-system",
           "name": "AFES",
+          "railIcon": "ri-survey-line",
           "slug": "qams-system-12",
           "systemKey": "system-12"
         },
         {
           "url": "dashboard/systems/gender-and-development-system",
           "name": "GAD DB",
+          "railIcon": "ri-women-line",
           "slug": "qams-system-13",
           "systemKey": "system-13"
         },
         {
           "url": "dashboard/systems/slsu-web-based-integrated-payment-engine",
           "name": "SWIPE",
+          "railIcon": "ri-money-dollar-circle-line",
           "slug": "qams-system-finance",
           "systemKey": "finance"
         },
         {
           "url": "dashboard/systems/proximity-attendance-scanning-system",
           "name": "PASS",
+          "railIcon": "ri-scan-line",
           "slug": "qams-system-14",
           "systemKey": "system-14"
         },
         {
           "url": "dashboard/systems/designation-management-system",
           "name": "DMIS",
+          "railIcon": "ri-user-settings-line",
           "slug": "qams-system-15",
           "systemKey": "system-15"
         }

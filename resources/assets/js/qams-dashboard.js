@@ -7,7 +7,6 @@ if (dashboard) {
   const alert = dashboard.querySelector('[data-refresh-alert]');
   const checkedAt = dashboard.querySelector('[data-dashboard-checked-at]');
   const endpoint = dashboard.dataset.systemsUrl;
-  const searchInput = document.querySelector('[data-qams-system-search]');
   const categoryButtons = [...dashboard.querySelectorAll('[data-category-filter]')];
   const systemSections = [...dashboard.querySelectorAll('[data-category-section]')].map(section => {
     const grid = section.querySelector('[data-system-grid]');
@@ -73,15 +72,8 @@ if (dashboard) {
   };
 
   const updateSummary = systems => {
-    const liveCount = systems.filter(system => system.source === 'live').length;
     const demoCount = systems.filter(system => system.source === 'demo').length;
     const unavailableCount = systems.filter(system => system.source === 'unavailable').length;
-    const liveSummaryCount = dashboard.querySelector('[data-live-summary-count]');
-    if (liveSummaryCount) animateNumber(liveSummaryCount, liveCount);
-    const liveConnectionSummary = dashboard.querySelector('[data-live-connection-summary]');
-    if (liveConnectionSummary) {
-      animateNumber(liveConnectionSummary.querySelector('[data-live-connection-count]'), liveCount);
-    }
     const demoSummary = dashboard.querySelector('[data-demo-summary]');
     const unavailableSummary = dashboard.querySelector('[data-unavailable-summary]');
 
@@ -90,35 +82,28 @@ if (dashboard) {
 
     systems.forEach(system => {
       const summaryValue = dashboard.querySelector(`[data-summary-value-for="${CSS.escape(system.key)}"]`);
-      const metrics = Array.isArray(system.metrics) ? system.metrics : [];
-      const metric = system.key === 'system-17'
-        ? metrics.find(({ label }) => /^total enrolled students \(ay \d{4}-\d{4}\)$/i.test(label.trim()))
-        : metrics[0];
+      if (!summaryValue) return;
 
-      if (summaryValue) animateNumber(summaryValue, metric?.value || '—');
+      const metrics = Array.isArray(system.metrics) ? system.metrics : [];
+      const expectedLabel = summaryValue.dataset.summaryMetricLabel;
+      let metric = metrics[0];
+      if (expectedLabel) {
+        metric = metrics.find(({ label }) => label.trim().toLowerCase() === expectedLabel.toLowerCase());
+      } else if (system.key === 'system-17') {
+        metric = metrics.find(({ label }) => /^total enrolled students \(ay \d{4}-\d{4}\)$/i.test(label.trim()));
+      }
+
+      animateNumber(summaryValue, metric?.value ?? '—');
+      const link = summaryValue.closest('a');
+      if (link) link.title = system.source_label;
     });
   };
 
-  const applyFilters = () => {
-    const query = searchInput?.value.trim().toLocaleLowerCase() || '';
-    let visibleCount = 0;
-
+  const filterByCategory = () => {
     systemSections.forEach(({ section, columns }) => {
       const matchesCategory = activeCategory === 'all' || section.dataset.categorySection === activeCategory;
-      let sectionVisibleCount = 0;
-
-      columns.forEach(column => {
-        const card = column.querySelector('[data-system-card]');
-        const matchesSearch = card.dataset.systemName.toLocaleLowerCase().includes(query);
-        column.hidden = !matchesCategory || !matchesSearch;
-        if (!column.hidden) sectionVisibleCount += 1;
-      });
-
-      section.hidden = sectionVisibleCount === 0;
-      visibleCount += sectionVisibleCount;
+      section.hidden = !matchesCategory || columns.length === 0;
     });
-
-    dashboard.querySelector('[data-no-results]').hidden = visibleCount > 0;
   };
 
   const sortSystems = () => {
@@ -133,29 +118,14 @@ if (dashboard) {
     });
   };
 
-  const renderSystems = (systems, universityPersonnel) => {
+  const renderSystems = systems => {
     systems.forEach(system => {
       const card = dashboard.querySelector(`[data-system-card="${CSS.escape(system.key)}"]`);
 
       if (!card) return;
 
-      if (system.key === 'human-resources') {
-        const metrics = universityPersonnel === null ? [] : [{ label: 'University personnel', value: universityPersonnel }];
-        renderMetrics(card.querySelector('[data-system-metrics]'), metrics);
-        updateSystemStatus(card, universityPersonnel === null ? 'unavailable' : 'cached',
-          universityPersonnel === null ? 'Unavailable' : 'Warehouse snapshot');
-        return;
-      }
-
-      const systemMetrics = Array.isArray(system.metrics) ? system.metrics : [];
-      const cardMetric = system.key === 'system-17'
-        ? systemMetrics.find(({ label }) => /^total enrolled students \(ay \d{4}-\d{4}\)$/i.test(label.trim()))
-        : systemMetrics[0];
-      const metrics = cardMetric ? [cardMetric] : [];
-      const displayMetrics = cardMetric && system.key === 'system-17'
-        ? [{ ...cardMetric, label: 'Enrolled students' }]
-        : metrics;
-      renderMetrics(card.querySelector('[data-system-metrics]'), displayMetrics);
+      const metrics = Array.isArray(system.metrics) ? system.metrics.slice(0, 1) : [];
+      renderMetrics(card.querySelector('[data-system-metrics]'), metrics);
       updateSystemStatus(card, system.source, system.source_label);
     });
 
@@ -184,10 +154,12 @@ if (dashboard) {
       const universityPersonnel = Number.isInteger(result.university_personnel)
         ? new Intl.NumberFormat().format(result.university_personnel)
         : null;
-      renderSystems(result.systems, universityPersonnel);
+      renderSystems(result.systems);
       const personnel = dashboard.querySelector('[data-university-personnel]');
       if (personnel) {
         animateNumber(personnel, universityPersonnel ?? '—');
+        const link = personnel.closest('a');
+        if (link) link.title = universityPersonnel === null ? 'Unavailable' : 'Warehouse snapshot';
       }
       checkedAt.textContent = `Last checked ${formattedTime(result.checked_at)}`;
     } catch (error) {
@@ -211,7 +183,7 @@ if (dashboard) {
         filter.setAttribute('aria-pressed', String(selected));
       });
 
-      applyFilters();
+      filterByCategory();
     });
   });
 
@@ -230,22 +202,8 @@ if (dashboard) {
     });
   });
 
-  searchInput?.addEventListener('input', applyFilters);
   sortControl.addEventListener('change', sortSystems);
   refreshButton.addEventListener('click', refreshSystems);
-
-  document.addEventListener('keydown', event => {
-    if (event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
-      event.preventDefault();
-      searchInput?.focus();
-    }
-
-    if (event.key === 'Escape' && document.activeElement === searchInput) {
-      searchInput.value = '';
-      applyFilters();
-      searchInput.blur();
-    }
-  });
 
   const navigationType = performance.getEntriesByType?.('navigation')?.[0]?.type;
   if (navigationType === 'reload') refreshSystems();

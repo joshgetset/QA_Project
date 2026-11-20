@@ -11,6 +11,8 @@
 @vite(['resources/assets/js/ces-analytics.js'])
 @elseif ($hrmisAnalytics)
 @vite(['resources/assets/js/hrmis-analytics.js'])
+@elseif ($gadAnalytics)
+@vite(['resources/assets/js/gad-analytics.js'])
 @endif
 @endsection
 
@@ -18,8 +20,8 @@
 <main class="qams-system-detail">
     <header class="qams-detail-header">
         <div>
-            <h4 @class(['mb-1', 'qams-ces-section-title' => $cesAnalytics || $isHrmis])>{{ $system['name'] }}</h4>
-            <p class="mb-0 text-body-secondary">{{ $system['description'] }}</p>
+            <h4 @class(['mb-1', 'qams-ces-section-title' => $cesAnalytics || $isHrmis || $isGad])>{{ $system['name'] }}</h4>
+            <p class="mb-0 text-body-secondary">{{ $isGad ? 'Track submissions, approvals, implementation schedules, and completion.' : $system['description'] }}</p>
         </div>
         <a class="btn btn-outline-primary" href="{{ route('dashboard-analytics') }}">
             <i class="icon-base ri ri-arrow-left-line me-1"></i>
@@ -31,6 +33,8 @@
         @include('personal.analytics.ces')
     @elseif ($isHrmis)
         @include('personal.analytics.hrmis')
+    @elseif ($isGad)
+        @include('personal.analytics.gad')
     @else
     <section class="card">
         <div class="card-header d-flex align-items-center justify-content-between gap-3">

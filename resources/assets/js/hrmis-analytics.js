@@ -133,7 +133,7 @@ if (analytics) {
     const tables = ratioPanel.querySelectorAll('[data-hrmis-ratio-table]');
     const scopes = readData(ratioPanel);
     const formatRatio = new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const ratioLabel = value => value === null ? 'Unavailable' : `${formatRatio.format(value)}:1`;
+    const ratioLabel = value => value === null ? 'Unavailable' : `1:${formatRatio.format(value)}`;
     let chart;
 
     const showScope = () => {
@@ -145,7 +145,7 @@ if (analytics) {
       if (chart) chart.destroy();
       chart = new SystemDashboardChart(plot, {
         chart: { ...chartOptions, type: 'bar', height: Math.max(170, rows.length * 38 + 80) },
-        series: [{ name: 'Students per Teacher', data: rows.map(row => row.ratio) }],
+        series: [{ name: 'Faculty to Student Ratio', data: rows.map(row => row.ratio) }],
         colors: [color('danger')],
         plotOptions: {
           bar: {

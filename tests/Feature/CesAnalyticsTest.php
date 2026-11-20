@@ -149,6 +149,7 @@ class CesAnalyticsTest extends TestCase
             $table->decimal('annual_income', 14, 2)->nullable();
         });
         $schema->create('dim_ces_scholarship', function (Blueprint $table) {
+            $table->string('source_name')->nullable();
             $table->id();
             $table->string('canonical_name')->nullable();
         });
@@ -282,5 +283,20 @@ class CesAnalyticsTest extends TestCase
         $this->assertSame(1, $breakdown['TES']);
         $this->assertSame(1, $breakdown['Multiple Scholarships']);
         $this->assertSame(1, $breakdown['Other or Unspecified Aid']);
+
+        $warehouse->table('dim_ces_scholarship')->insert([
+            'id' => 103, 'source_name' => 'Academic Scholar',
+        ]);
+        $warehouse->table('fact_ces_registration')->insert([
+            'campus_id' => 2, 'academic_period_id' => 10, 'student_id' => 3, 'program_id' => 2,
+            'scholarship_id' => 103, 'source_scholarship_id' => 'SCH-3', 'is_finalized' => true,
+        ]);
+
+        $payload = (new CesEnrollmentAnalytics)->get(['year' => '2026', 'semester' => '1']);
+        $breakdown = collect($payload['financial_aid_breakdown'])->pluck('total', 'name');
+
+        $this->assertSame(1, $breakdown['Academic Scholar']);
+        $this->assertSame(0, $breakdown['Other or Unspecified Aid']);
+        $this->assertSame($aidTotal, $breakdown->sum());
     }
 }

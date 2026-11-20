@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Services\GadWarehouseAnalytics;
 use App\Services\HrmisWorkforceAnalytics;
 use App\Services\QamsSystemData;
 use App\Services\StudentTeacherRatio;
@@ -49,7 +50,7 @@ class Analytics extends Controller
         }
     }
 
-    public function showSystem(string $system, Request $request, StudentTeacherRatio $ratios)
+    public function showSystem(string $system, Request $request, StudentTeacherRatio $ratios, GadWarehouseAnalytics $gad)
     {
         $systemDefinition = $this->systemData->definition($system);
 
@@ -62,6 +63,22 @@ class Analytics extends Controller
         }
 
         $isHrmis = $systemDefinition['key'] === 'human-resources';
+        $isGad = $systemDefinition['key'] === 'system-13';
+        $gadAnalytics = null;
+        if ($isGad) {
+            $month = $request->integer('month');
+            try {
+                $gadAnalytics = $gad->get([
+                    'campus' => $request->integer('campus') ?: null,
+                    'department' => $request->integer('department') ?: null,
+                    'year' => $request->integer('year') ?: null,
+                    'month' => $month >= 1 && $month <= 12 ? $month : null,
+                ]);
+            } catch (PDOException $exception) {
+                report($exception);
+            }
+        }
+
         $hrmisAnalytics = null;
         $studentTeacherRatio = null;
         if ($isHrmis) {
@@ -83,7 +100,7 @@ class Analytics extends Controller
             }
         }
 
-        $systemData = $systemDefinition['key'] === 'system-17' || $isHrmis
+        $systemData = $systemDefinition['key'] === 'system-17' || $isHrmis || $isGad
             ? $systemDefinition
             : $this->systemData->find($system);
 
@@ -93,6 +110,8 @@ class Analytics extends Controller
             'isHrmis' => $isHrmis,
             'hrmisAnalytics' => $hrmisAnalytics,
             'studentTeacherRatio' => $studentTeacherRatio,
+            'isGad' => $isGad,
+            'gadAnalytics' => $gadAnalytics,
         ]);
     }
 }

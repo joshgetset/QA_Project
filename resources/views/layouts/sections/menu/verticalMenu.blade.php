@@ -11,9 +11,9 @@ use Illuminate\Support\Str;
             <span class="app-brand-text demo menu-text fw-semibold ms-2">QAMS</span>
         </a>
 
-        <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
-            <i class="menu-toggle-icon d-xl-inline-block align-middle"></i>
-        </a>
+        <button type="button" class="layout-menu-toggle btn btn-icon btn-text-secondary rounded-pill ms-auto" aria-label="Collapse sidebar" aria-controls="layout-menu" aria-expanded="true">
+            <i class="icon-base ri ri-menu-fold-line icon-md" aria-hidden="true"></i>
+        </button>
     </div>
 
     <div class="menu-inner-shadow"></div>

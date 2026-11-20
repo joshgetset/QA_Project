@@ -2,7 +2,7 @@
     <p class="alert alert-secondary mb-0">HRMIS warehouse data is unavailable.</p>
 @else
     <div data-hrmis-analytics>
-        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-12">
             <form class="d-flex flex-wrap gap-3" method="get" data-hrmis-filters>
                 <div>
                     <label class="form-label qams-ces-filter-label" for="hrmis-campus">
@@ -26,7 +26,6 @@
                     </select>
                 </div>
             </form>
-            <small class="text-body-secondary">Warehouse snapshot {{ \Illuminate\Support\Carbon::parse($hrmisAnalytics['snapshot_date'])->format('M j, Y') }}</small>
         </div>
 
         <section class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3" aria-label="Employee totals">
@@ -53,7 +52,7 @@
 
         @include('personal.analytics.student-teacher-ratio')
 
-        <section class="qams-hrmis-section" aria-labelledby="hrmis-senior-roles-title">
+        <section class="qams-analytics-section" aria-labelledby="hrmis-senior-roles-title">
             <h5 class="qams-ces-section-title mb-1" id="hrmis-senior-roles-title">Senior Academic Staff by Role</h5>
             <p class="small text-body-secondary mb-3">Employee counts by senior academic rank or leadership role, broken down by gender.</p>
             <div class="card qams-ces-demographic-overview">
@@ -67,7 +66,7 @@
         </section>
 
         @foreach ($hrmisAnalytics['sections'] as $section)
-            <section class="qams-hrmis-section" aria-labelledby="hrmis-personnel-{{ $loop->index }}">
+            <section class="qams-analytics-section" aria-labelledby="hrmis-personnel-{{ $loop->index }}">
                 <h5 class="qams-ces-section-title mb-1" id="hrmis-personnel-{{ $loop->index }}">{{ $section['title'] }}</h5>
                 <p class="small text-body-secondary mb-3">{{ $section['description'] }}</p>
                 <div class="row g-3">

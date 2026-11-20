@@ -4,7 +4,7 @@
     <div class="qams-ces-analytics" data-ces-analytics data-ces-analytics-url="{{ route('qams.ces.analytics') }}">
     <script type="application/json" data-ces-analytics-data>@json($cesAnalytics)</script>
     <p class="alert" data-ces-analytics-status role="status" aria-live="polite" hidden></p>
-    <section class="mb-4" aria-label="Filter enrollment analytics">
+    <section class="mb-12" aria-label="Filter enrollment analytics">
         <div class="row g-3">
                 @foreach (['campus' => 'Campus', 'college' => 'Faculty', 'program' => 'Program', 'year' => 'Academic Year', 'semester' => 'Semester'] as $filterKey => $filterLabel)
                     <div class="col-12 col-md-6 col-xl">
@@ -22,7 +22,7 @@
         </div>
     </section>
 
-    <section class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 qams-ces-enrollment-metrics" aria-label="Enrollment metrics">
+    <section class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3" aria-label="Enrollment metrics">
         @foreach ($cesAnalytics['summary'] as $metric)
             <div class="col">
                 <article class="card qams-summary-card qams-analytics-summary-card {{ $metric['key'] === 'total-enrolled-students' ? 'qams-analytics-summary-primary' : '' }} h-100">
@@ -36,7 +36,7 @@
         @endforeach
     </section>
 
-    <section class="row g-3 mb-5" aria-label="Enrollment overview">
+    <section class="row g-3 mt-3" aria-label="Enrollment overview">
         <div class="col-12 col-lg-5 col-xl-4">
             <article class="card qams-ces-demographic-overview h-100">
                 <div class="card-body">
@@ -57,7 +57,7 @@
         </div>
     </section>
 
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div class="qams-analytics-section d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div>
             <h5 class="qams-ces-section-title mb-1">Student Demographics</h5>
             <p class="mb-0 text-body-secondary">Student counts and gender breakdowns where available.</p>
@@ -120,7 +120,7 @@
             <div class="qams-ces-demographic-overview-chart" data-ces-overview-chart></div>
         </div>
     </section>
-    <section class="mt-5 pt-4" aria-labelledby="ces-financial-title">
+    <section class="qams-analytics-section" aria-labelledby="ces-financial-title">
         <h5 class="qams-ces-section-title mb-1" id="ces-financial-title">Financial Demographics</h5>
         <p class="mb-3 text-body-secondary">Student counts for financial aid and reported annual income.</p>
         <div class="qams-ces-demographic-overview qams-ces-financial-panel rounded">

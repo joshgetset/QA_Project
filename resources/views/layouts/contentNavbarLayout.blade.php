@@ -38,7 +38,7 @@ $container = ($container ?? 'container-xxl');
 
 
         <!-- Layout page -->
-        <div class="layout-page">
+        <div class="layout-page bg-body">
 
             {{-- Below commented code read by artisan command while installing jetstream. !! Do not remove if you want to use jetstream. --}}
             {{-- <x-banner /> --}}

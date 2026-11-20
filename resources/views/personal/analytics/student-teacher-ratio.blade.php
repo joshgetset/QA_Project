@@ -1,5 +1,5 @@
-<section class="qams-hrmis-section" aria-labelledby="hrmis-ratio-title">
-    <h5 class="qams-ces-section-title mb-1" id="hrmis-ratio-title">Student-to-Teacher Ratio</h5>
+<section class="qams-analytics-section" aria-labelledby="hrmis-ratio-title">
+    <h5 class="qams-ces-section-title mb-1" id="hrmis-ratio-title">Faculty to Student Ratio</h5>
     <p class="small text-body-secondary mb-3">Enrolled students per teaching employee across the six campuses.</p>
 
     @if ($studentTeacherRatio === null)
@@ -34,22 +34,22 @@
                     <summary class="small fw-semibold text-primary">View enrollment and teaching counts</summary>
                     @foreach (['campuses', 'university'] as $scope)
                         <div class="table-responsive" data-hrmis-ratio-table="{{ $scope }}" @if ($scope !== 'campuses') hidden @endif>
-                            <table class="table table-sm qams-hrmis-ratio-table mb-0" aria-label="Student-to-teacher ratio">
+                            <table class="table table-sm qams-hrmis-ratio-table qams-campus-comparison-table mb-0" aria-label="Faculty to Student Ratio">
                                 <thead>
                                     <tr>
                                         <th scope="col">{{ $scope === 'campuses' ? 'Campus' : 'Institution' }}</th>
-                                        <th scope="col" class="text-end">Student Enrollment</th>
-                                        <th scope="col" class="text-end">Teaching Personnel</th>
-                                        <th scope="col" class="text-end">Students per Teacher</th>
+                                        <th scope="col">Student Enrollment</th>
+                                        <th scope="col">Teaching Personnel</th>
+                                        <th scope="col">Faculty to Student Ratio</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($studentTeacherRatio[$scope] as $row)
                                         <tr>
                                             <th scope="row">{{ $row['label'] }}</th>
-                                            <td class="text-end">{{ $row['students'] === null ? '—' : number_format($row['students']) }}</td>
-                                            <td class="text-end">{{ $row['teachers'] === null ? '—' : number_format($row['teachers']) }}</td>
-                                            <td class="text-end">{{ $row['ratio'] === null ? '—' : number_format($row['ratio'], 2) . ':1' }}</td>
+                                            <td>{{ $row['students'] === null ? '—' : number_format($row['students']) }}</td>
+                                            <td>{{ $row['teachers'] === null ? '—' : number_format($row['teachers']) }}</td>
+                                            <td>{{ $row['ratio'] === null ? '—' : '1:' . number_format($row['ratio'], 2) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

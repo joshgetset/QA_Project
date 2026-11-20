@@ -3,6 +3,7 @@
 @section('title', 'University QAMS | Sign in')
 
 @section('page-style')
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&amp;display=swap" />
 @vite(['resources/assets/css/custom/login.css'])
 @endsection
 
@@ -12,7 +13,7 @@
         <section class="login-showcase" aria-label="Southern Leyte State University">
             <img class="showcase-background" src="{{ asset('assets/img/custom/landmark.jpg') }}" alt="" />
             <img class="showcase-stripe" src="{{ asset('assets/img/custom/whiteStripe.png') }}" alt="" />
-            <img class="showcase-logo" src="{{ asset('assets/img/custom/Southern_Leyte_State_University logo.png') }}" alt="Southern Leyte State University" />
+            <img class="showcase-logo" src="{{ asset('assets/img/custom/QA_logo.png') }}" alt="Quality Assurance" />
         </section>
 
         <section class="login-panel" aria-labelledby="login-heading">

@@ -335,21 +335,24 @@ class CesEnrollmentAnalytics
                 $scholarshipTotals[$row->canonical_name] = (int) $row->recipients;
             }
 
+            $aidScholarshipName = "COALESCE(NULLIF(TRIM(scholarship.canonical_name), ''), NULLIF(TRIM(scholarship.source_name), ''))";
             $aidScholarshipsByStudent = (clone $financialAidQuery)
                 ->join('dim_ces_scholarship as scholarship', 'f.scholarship_id', '=', 'scholarship.id')
-                ->whereIn('scholarship.canonical_name', self::SCHOLARSHIP_TYPES)
-                ->selectRaw('MIN(scholarship.canonical_name) AS scholarship_name, COUNT(DISTINCT scholarship.canonical_name) AS scholarship_count')
+                ->whereRaw("LOWER(TRIM(COALESCE(f.source_scholarship_id, ''))) NOT IN ('', '0', 'none', 'no', 'null')")
+                ->whereRaw("LOWER($aidScholarshipName) NOT IN ('0', 'none', 'no', 'null')")
+                ->selectRaw("MIN($aidScholarshipName) AS scholarship_name, COUNT(DISTINCT $aidScholarshipName) AS scholarship_count")
                 ->groupBy('f.student_id');
             $aidScholarshipGroups = $warehouse->query()
                 ->fromSub($aidScholarshipsByStudent, 'student_aid')
                 ->selectRaw('scholarship_name, scholarship_count, COUNT(*) AS recipients')
                 ->groupBy('scholarship_name', 'scholarship_count')
+                ->orderBy('scholarship_name')
                 ->get();
             foreach ($aidScholarshipGroups as $group) {
                 $name = (int) $group->scholarship_count > 1 ? 'Multiple Scholarships' : $group->scholarship_name;
-                $aidBreakdown[$name] += (int) $group->recipients;
+                $aidBreakdown[$name] = ($aidBreakdown[$name] ?? 0) + (int) $group->recipients;
             }
-            $aidBreakdown['Other or Unspecified Aid'] = $demographics['financial-aid-recipients']['total'] - array_sum($aidBreakdown);
+            $aidBreakdown['Other or Unspecified Aid'] += $demographics['financial-aid-recipients']['total'] - array_sum($aidBreakdown);
         } else {
             $summary['total-enrolled-students'] = null;
         }

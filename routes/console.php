@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\CesWarehouseSynchronizer;
+use App\Services\GadWarehouseSynchronizer;
 use App\Services\HrmisWarehouseSynchronizer;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Foundation\Inspiring;
@@ -36,3 +37,8 @@ Artisan::command('hrmis:sync-warehouse', function (HrmisWarehouseSynchronizer $s
         .$result['source_campuses'].' source campus IDs.'
     );
 })->purpose('Stage HRMIS records and ETL employee snapshots into the QAMS warehouse');
+
+Artisan::command('gad:sync-warehouse', function (GadWarehouseSynchronizer $synchronizer) {
+    $counts = $synchronizer->sync();
+    $this->info('GAD warehouse refreshed: '.json_encode($counts, JSON_THROW_ON_ERROR));
+})->purpose('Fetch the GAD source API snapshot and publish validated warehouse facts');
